@@ -79,19 +79,19 @@
     "win": {
       "target": [
         {
+          "target": "dir",
+          "arch": ["x64"]
+        },
+        {
           "target": "nsis",
-          "arch": [
-            "x64"
-          ]
+          "arch": ["x64"]
         }
       ],
       "icon": "build-resources/icon.ico",
       "requestedExecutionLevel": "asInvoker",
-      "artifactName": "NorteTecnologiaERP-Setup-${version}.exe",
+      "artifactName": "NorteTecnologiaERP-${version}.exe",
       "verifyUpdateCodeSignature": false,
-      "signingHashAlgorithms": [
-        "sha256"
-      ],
+      "signingHashAlgorithms": ["sha256"],
       "signDlls": false
     },
     "nsis": {

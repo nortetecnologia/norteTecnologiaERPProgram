@@ -46,15 +46,13 @@ export async function startNextServer(port: number): Promise<void> {
     serverProcess.stderr?.on("data", (d: Buffer) => console.error("[next:err]", d.toString().trim()));
     serverProcess.on("error", reject);
 
-    // Aguarda o servidor responder
+    // Aguarda o servidor aceitar conexões (qualquer resposta = servidor no ar)
     const start = Date.now();
     const poll = setInterval(() => {
       const req = http.get(`http://127.0.0.1:${port}`, (res) => {
-        if (res.statusCode && res.statusCode < 500) {
-          clearInterval(poll);
-          resolve();
-        }
-        res.resume();
+        res.resume(); // descarta o body
+        clearInterval(poll);
+        resolve(); // qualquer status code = servidor iniciou
       });
       req.on("error", () => {
         if (Date.now() - start > 45_000) {
