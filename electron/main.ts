@@ -63,10 +63,15 @@ app.whenReady().then(async () => {
   const db = new LocalDB();
   await db.init();
 
-  syncEngine = new SyncEngine(db);
-
-  // Mostra janela de loading imediatamente enquanto o servidor sobe
+  // Janela primeiro — sempre visível independente de erros de sync
   await createWindow();
+
+  // SyncEngine inicializa depois (pode falhar se credenciais ausentes)
+  try {
+    syncEngine = new SyncEngine(db);
+  } catch (err) {
+    console.error("[sync] falha ao inicializar SyncEngine:", err);
+  }
 
   try {
     await startNextServer(PORT);

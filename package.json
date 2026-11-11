@@ -13,7 +13,7 @@
     "electron:build": "cross-env ELECTRON_BUILD=true next build && npm run electron:build:ts && node scripts/prepare-standalone.js",
     "electron:pack": "electron-builder --dir",
     "electron:dist": "electron-builder",
-    "electron:dist:win": "electron-builder --win"
+    "electron:dist:win": "electron-builder --win && node scripts/copy-to-dist.js"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -74,6 +74,10 @@
         "filter": [
           "**/*"
         ]
+      },
+      {
+        "from": ".env.local",
+        "to": "app/.env.local"
       }
     ],
     "win": {
