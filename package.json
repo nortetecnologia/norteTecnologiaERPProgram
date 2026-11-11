@@ -13,7 +13,8 @@
     "electron:build": "cross-env ELECTRON_BUILD=true next build && npm run electron:build:ts && node scripts/prepare-standalone.js",
     "electron:pack": "electron-builder --dir",
     "electron:dist": "electron-builder",
-    "electron:dist:win": "electron-builder --win && node scripts/copy-to-dist.js"
+    "electron:dist:win": "electron-builder --win && node scripts/copy-to-dist.js",
+    "electron:release": "electron-builder --win --publish always && node scripts/copy-to-dist.js"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -87,6 +88,10 @@
     "win": {
       "target": [
         {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
           "target": "dir",
           "arch": ["x64"]
         }
@@ -98,17 +103,14 @@
       "signDlls": false
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "installerIcon": "build-resources/icon.ico",
-      "uninstallerIcon": "build-resources/icon.ico",
-      "installerHeaderIcon": "build-resources/icon.ico",
+      "oneClick": true,
+      "perMachine": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Norte Tecnologia ERP",
-      "runAfterFinish": true,
-      "perMachine": false,
-      "allowElevation": true,
+      "installerIcon": "build-resources/icon.ico",
+      "uninstallerIcon": "build-resources/icon.ico",
+      "runAfterFinish": false,
       "deleteAppDataOnUninstall": false
     },
     "publish": {

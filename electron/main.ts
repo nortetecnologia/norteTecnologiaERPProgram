@@ -99,8 +99,8 @@ app.whenReady().then(async () => {
     );
   }
 
-  // Auto-updater (ignora erros de rede)
-  try { autoUpdater.checkForUpdatesAndNotify(); } catch { /* offline */ }
+  // Auto-updater
+  setupAutoUpdater();
 
   // Sync IPC handlers
   ipcMain.handle("sync:getStatus", () => syncEngine?.getStatus());
@@ -136,6 +136,34 @@ app.whenReady().then(async () => {
     return dumpSupabase(destPath);
   });
 });
+
+function setupAutoUpdater() {
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on("update-downloaded", (info) => {
+    if (!mainWindow) return;
+    dialog.showMessageBox(mainWindow, {
+      type: "info",
+      title: "Atualização disponível",
+      message: `Versão ${info.version} baixada. Reiniciar agora para aplicar?`,
+      buttons: ["Reiniciar agora", "Depois"],
+      defaultId: 0,
+    }).then(({ response }) => {
+      if (response === 0) autoUpdater.quitAndInstall(false, true);
+    });
+  });
+
+  autoUpdater.on("error", (err) => {
+    console.error("[updater]", err.message);
+  });
+
+  try {
+    autoUpdater.checkForUpdates();
+  } catch {
+    /* offline ou app portátil */
+  }
+}
 
 app.on("window-all-closed", () => {
   stopNextServer();
