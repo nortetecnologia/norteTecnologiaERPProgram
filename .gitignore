@@ -12,6 +12,7 @@
 
 # Production
 /build
+/Backups DB
 
 # Env files
 .env
