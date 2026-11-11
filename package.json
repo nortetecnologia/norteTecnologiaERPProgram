@@ -1,6 +1,6 @@
 {
   "name": "norte-tecnologia-erp",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": true,
   "main": "dist/electron/main.js",
   "scripts": {
@@ -44,7 +44,7 @@
   "build": {
     "appId": "com.nortetecnologia.erp",
     "productName": "Norte Tecnologia ERP",
-    "copyright": "Copyright ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â© 2024 Norte Tecnologia",
+    "copyright": "Copyright ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â© 2024 Norte Tecnologia",
     "asar": true,
     "directories": {
       "output": "release",
