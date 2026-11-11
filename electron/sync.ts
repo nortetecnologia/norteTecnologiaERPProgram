@@ -141,7 +141,7 @@ export class SyncEngine {
     }
 
     // Drena vendas offline
-    const sales = this.db.getUnsyncedSales() as Array<Record<string, unknown>>;
+    const sales = this.db.getUnsyncedSales() as unknown as Array<Record<string, unknown>>;
     for (const sale of sales) {
       try {
         const items = JSON.parse(sale.items as string);

@@ -3,9 +3,7 @@
 import { useState } from "react";
 import Sidebar from "./Sidebar";
 import { AppHeader } from "./AppHeader";
-import dynamic from "next/dynamic";
-
-const DesktopBar = dynamic(() => import("@/components/desktop/DesktopBar"), { ssr: false });
+import { DesktopBar } from "@/components/desktop/DesktopOnly";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);

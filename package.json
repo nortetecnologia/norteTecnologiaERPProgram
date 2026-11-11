@@ -10,7 +10,7 @@
     "lint": "next lint",
     "electron:dev": "concurrently \"next dev -p 3721\" \"wait-on http://localhost:3721 && electron .\"",
     "electron:build:ts": "tsc -p tsconfig.electron.json",
-    "electron:build": "next build && npm run electron:build:ts",
+    "electron:build": "cross-env ELECTRON_BUILD=true next build && npm run electron:build:ts && node scripts/prepare-standalone.js",
     "electron:pack": "electron-builder --dir",
     "electron:dist": "electron-builder",
     "electron:dist:win": "electron-builder --win"
@@ -18,19 +18,19 @@
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.0",
-    "better-sqlite3": "^9.4.3",
+    "electron-store": "^8.1.0",
     "electron-updater": "^6.3.4",
     "next": "15.5.29",
     "react": "^18",
     "react-dom": "^18"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.8",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
     "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
     "electron": "^31.0.0",
     "electron-builder": "^24.13.3",
     "eslint": "^8",
@@ -43,39 +43,80 @@
   "build": {
     "appId": "com.nortetecnologia.erp",
     "productName": "Norte Tecnologia ERP",
+    "copyright": "Copyright © 2024 Norte Tecnologia",
+    "asar": true,
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "build-resources"
     },
     "files": [
-      "dist/**/*",
-      ".next/**/*",
-      "public/**/*",
-      "node_modules/**/*",
+      "dist/electron/**/*",
       "package.json"
     ],
     "extraResources": [
       {
-        "from": ".next",
-        "to": "app/.next"
+        "from": ".next/standalone",
+        "to": "app/.next/standalone",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": ".next/static",
+        "to": "app/.next/standalone/.next/static",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "public",
+        "to": "app/.next/standalone/public",
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "win": {
-      "target": "nsis",
-      "icon": "public/icon-512.png"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build-resources/icon.ico",
+      "requestedExecutionLevel": "asInvoker",
+      "artifactName": "NorteTecnologiaERP-Setup-${version}.exe",
+      "verifyUpdateCodeSignature": false,
+      "signingHashAlgorithms": [
+        "sha256"
+      ],
+      "signDlls": false
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "installerIcon": "public/icon-512.png",
-      "installerHeaderIcon": "public/icon-512.png",
+      "installerIcon": "build-resources/icon.ico",
+      "uninstallerIcon": "build-resources/icon.ico",
+      "installerHeaderIcon": "build-resources/icon.ico",
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "shortcutName": "Norte Tecnologia ERP",
+      "runAfterFinish": true,
+      "perMachine": false,
+      "allowElevation": true,
+      "deleteAppDataOnUninstall": false
     },
     "publish": {
       "provider": "github",
       "owner": "nortetecnologia",
-      "repo": "norteTecnologiaERPProgram"
+      "repo": "norteTecnologiaERPProgram",
+      "releaseType": "release"
     }
   },
-  "author": "Hiago Almeida Chaves"
+  "author": "Hiago Almeida Chaves",
+  "allowScripts": {
+    "electron@31.7.7": true
+  }
 }

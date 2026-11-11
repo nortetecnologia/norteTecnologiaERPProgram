@@ -1,26 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import type { SyncStatus } from "@/types/electron";
 
-interface SyncStatus {
-  enabled: boolean;
-  online: boolean;
-  lastSync: string | null;
-  pendingCount: number;
-  syncing: boolean;
-}
-
-declare global {
-  interface Window {
-    electronAPI?: {
-      getSyncStatus: () => Promise<SyncStatus>;
-      toggleSync: (enabled: boolean) => Promise<void>;
-      syncNow: () => Promise<{ success: boolean; error?: string }>;
-      getPendingCount: () => Promise<number>;
-      onSyncUpdate: (cb: (status: SyncStatus) => void) => () => void;
-    };
-  }
-}
 
 export default function DesktopBar() {
   const [status, setStatus] = useState<SyncStatus | null>(null);

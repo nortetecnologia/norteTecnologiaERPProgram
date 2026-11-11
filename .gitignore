@@ -37,3 +37,8 @@ Thumbs.db
 
 .vercel
 .env*
+
+release/
+dist/
+.next/
+node_modules/

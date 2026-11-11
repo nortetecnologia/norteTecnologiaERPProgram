@@ -29,7 +29,10 @@ const securityHeaders = [
   },
 ];
 
+const isElectronBuild = process.env.ELECTRON_BUILD === "true";
+
 const nextConfig: NextConfig = {
+  output: isElectronBuild ? "standalone" : undefined,
   experimental: {
     serverActions: {
       bodySizeLimit: "10mb",

@@ -2,9 +2,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth";
 import ConfigForm from "./ConfigForm";
-import dynamic from "next/dynamic";
-
-const BackupConfig = dynamic(() => import("@/components/desktop/BackupConfig"), { ssr: false });
+import { BackupConfig } from "@/components/desktop/DesktopOnly";
 
 export default async function ConfiguracoesPage() {
   await requireAdmin();

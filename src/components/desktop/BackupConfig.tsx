@@ -1,13 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { BackupConfigData } from "@/types/electron";
 
-interface BackupConfig {
-  enabled: boolean;
-  intervalHours: number;
-  path: string;
-  keepLast: number;
-}
+type BackupConfig = BackupConfigData;
 
 export default function BackupConfig() {
   const [config, setConfig] = useState<BackupConfig>({
