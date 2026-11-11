@@ -26,7 +26,8 @@ const ERP_TABLES = [
   "store_settings",
 ];
 
-async function fetchAll(supabase: ReturnType<typeof createClient>, table: string) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchAll(supabase: any, table: string) {
   const rows: unknown[] = [];
   let page = 0;
   while (true) {
