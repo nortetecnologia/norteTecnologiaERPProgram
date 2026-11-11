@@ -1,0 +1,36 @@
+{
+  "name": "Norte Tecnologia ERP",
+  "short_name": "NT ERP",
+  "description": "Sistema ERP da Norte Tecnologia",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "PDV",
+      "url": "/pdv",
+      "description": "Ponto de Venda"
+    },
+    {
+      "name": "Nova OS",
+      "url": "/os/nova",
+      "description": "Nova Ordem de Serviço"
+    }
+  ]
+}

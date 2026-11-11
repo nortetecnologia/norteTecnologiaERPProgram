@@ -1,0 +1,81 @@
+{
+  "name": "norte-tecnologia-erp",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/electron/main.js",
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start -p 3001",
+    "lint": "next lint",
+    "electron:dev": "concurrently \"next dev -p 3721\" \"wait-on http://localhost:3721 && electron .\"",
+    "electron:build:ts": "tsc -p tsconfig.electron.json",
+    "electron:build": "next build && npm run electron:build:ts",
+    "electron:pack": "electron-builder --dir",
+    "electron:dist": "electron-builder",
+    "electron:dist:win": "electron-builder --win"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.119.0",
+    "better-sqlite3": "^9.4.3",
+    "electron-updater": "^6.3.4",
+    "next": "15.5.29",
+    "react": "^18",
+    "react-dom": "^18"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.0.1",
+    "concurrently": "^8.2.2",
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3",
+    "eslint": "^8",
+    "eslint-config-next": "15.5.29",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.nortetecnologia.erp",
+    "productName": "Norte Tecnologia ERP",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      ".next/**/*",
+      "public/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": ".next",
+        "to": "app/.next"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "public/icon-512.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "public/icon-512.png",
+      "installerHeaderIcon": "public/icon-512.png",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "nortetecnologia",
+      "repo": "norteTecnologiaERPProgram"
+    }
+  },
+  "author": "Hiago Almeida Chaves"
+}
