@@ -1,4 +1,5 @@
 "use server";
+import { markLocalDataStale } from "@/lib/offline";
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
@@ -14,7 +15,7 @@ function slugify(text: string): string {
   return text
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[Ì€-Í¯]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
@@ -24,7 +25,7 @@ export async function saveProduto(prevState: unknown, formData: FormData) {
 
   const id = formData.get("id") as string | null;
   const name = (formData.get("name") as string)?.trim();
-  if (!name) return { error: "Nome é obrigatório." };
+  if (!name) return { error: "Nome Ã© obrigatÃ³rio." };
 
   const imageUrl = (formData.get("primary_image_url") as string)?.trim() ?? null;
 
@@ -69,6 +70,7 @@ export async function saveProduto(prevState: unknown, formData: FormData) {
   revalidatePath("/produtos");
   revalidatePath("/pdv");
   revalidateTag("products");
+  markLocalDataStale();
   redirect("/produtos");
 }
 
@@ -78,5 +80,6 @@ export async function deleteProduto(id: string) {
   if (error) return { error: error.message };
   revalidatePath("/produtos");
   revalidateTag("products");
+  markLocalDataStale();
   redirect("/produtos");
 }

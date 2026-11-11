@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth";
+import { markLocalDataStale } from "@/lib/offline";
 
 export async function saveSettings(prevState: unknown, formData: FormData) {
   await requireAdmin();
@@ -60,5 +61,6 @@ export async function saveSettings(prevState: unknown, formData: FormData) {
 
   revalidatePath("/configuracoes");
   revalidatePath("/pdv");
+  markLocalDataStale();
   return { success: true };
 }

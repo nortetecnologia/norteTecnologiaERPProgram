@@ -1,4 +1,5 @@
 "use server";
+import { markLocalDataStale } from "@/lib/offline";
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
@@ -16,7 +17,7 @@ export async function createServiceOrder(_prevState: unknown, formData: FormData
 
   const customerId = formData.get("customer_id") as string;
   const title = (formData.get("title") as string)?.trim();
-  if (!title) return { error: "Título/problema é obrigatório." };
+  if (!title) return { error: "TÃ­tulo/problema Ã© obrigatÃ³rio." };
   if (!customerId) return { error: "Selecione um cliente." };
 
   const imagesCount = parseInt(formData.get("images_count") as string) || 0;
@@ -66,6 +67,7 @@ export async function createServiceOrder(_prevState: unknown, formData: FormData
 
   revalidatePath("/os");
   revalidateTag("service-orders");
+  markLocalDataStale();
   redirect(`/os/${data.id}`);
 }
 
@@ -79,6 +81,7 @@ export async function updateOSStatus(id: string, status: OSStatus) {
   revalidatePath(`/os/${id}`);
   revalidatePath("/os");
   revalidateTag("service-orders");
+  markLocalDataStale();
   return { success: true };
 }
 

@@ -1,11 +1,11 @@
 import { unstable_cache } from "next/cache";
 import { createAdminClient } from "./supabase/admin";
-import { isOfflineMode, readOfflineData } from "./offline";
+import { shouldUseLocalData, readOfflineData } from "./offline";
 
 const TTL = 60;
 
 export const getCachedDashboard = (todayISO: string) => {
-  if (isOfflineMode()) {
+  if (shouldUseLocalData()) {
     const d = readOfflineData();
     const sales = (d["erp_pdv_sales"] ?? []) as any[];
     const os = (d["erp_service_orders"] ?? []) as any[];
@@ -38,7 +38,7 @@ export const getCachedDashboard = (todayISO: string) => {
 };
 
 export const getCachedCustomers = () => {
-  if (isOfflineMode()) {
+  if (shouldUseLocalData()) {
     const d = readOfflineData();
     const rows = (d["erp_customers"] ?? []) as any[];
     return Promise.resolve(rows.sort((a, b) => a.name?.localeCompare(b.name)));
@@ -55,7 +55,7 @@ export const getCachedCustomers = () => {
 };
 
 export const getCachedProducts = () => {
-  if (isOfflineMode()) {
+  if (shouldUseLocalData()) {
     const d = readOfflineData();
     const imgs = (d["product_images"] ?? []) as any[];
     const rows = (d["products"] ?? []) as any[];
@@ -82,7 +82,7 @@ export const getCachedProducts = () => {
 };
 
 export const getCachedServiceOrders = (status?: string) => {
-  if (isOfflineMode()) {
+  if (shouldUseLocalData()) {
     const d = readOfflineData();
     const customers = (d["erp_customers"] ?? []) as any[];
     let rows = (d["erp_service_orders"] ?? []) as any[];
@@ -112,7 +112,7 @@ export const getCachedServiceOrders = (status?: string) => {
 };
 
 export const getCachedStock = () => {
-  if (isOfflineMode()) {
+  if (shouldUseLocalData()) {
     const d = readOfflineData();
     const products = (d["products"] ?? []) as any[];
     const imgs = (d["product_images"] ?? []) as any[];

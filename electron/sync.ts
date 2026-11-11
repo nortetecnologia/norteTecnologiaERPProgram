@@ -1,5 +1,7 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { BrowserWindow } from "electron";
+import * as fs from "fs";
+import * as path from "path";
 import { LocalDB } from "./db";
 
 export interface SyncStatus {
@@ -10,6 +12,22 @@ export interface SyncStatus {
   syncing: boolean;
 }
 
+// Todas as tabelas ERP para espelhar localmente
+const SYNC_TABLES = [
+  "store_settings",
+  "categories",
+  "products",
+  "product_images",
+  "payment_methods",
+  "erp_customers",
+  "erp_pdv_sales",
+  "erp_pdv_sale_items",
+  "erp_pdv_sale_payments",
+  "erp_service_orders",
+  "erp_service_order_items",
+  "erp_stock_movements",
+];
+
 export class SyncEngine {
   private db: LocalDB;
   private supabase: SupabaseClient;
@@ -17,9 +35,11 @@ export class SyncEngine {
   private syncing = false;
   private lastSync: string | null = null;
   private syncInterval: ReturnType<typeof setInterval> | null = null;
+  private userDataPath: string;
 
-  constructor(db: LocalDB) {
+  constructor(db: LocalDB, userDataPath: string) {
     this.db = db;
+    this.userDataPath = userDataPath;
     this.supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SECRET_KEY!
@@ -44,7 +64,7 @@ export class SyncEngine {
   getStatus(): SyncStatus {
     return {
       enabled: this.enabled,
-      online: false, // atualizado via isOnline()
+      online: false,
       lastSync: this.lastSync,
       pendingCount: this.db.getPendingCount(),
       syncing: this.syncing,
@@ -67,8 +87,8 @@ export class SyncEngine {
 
   private startInterval() {
     if (this.syncInterval) clearInterval(this.syncInterval);
-    // Sync a cada 60 segundos quando enabled
-    this.syncInterval = setInterval(() => this.syncNow(), 60_000);
+    // Sync completo a cada 2 minutos
+    this.syncInterval = setInterval(() => this.syncNow(), 120_000);
   }
 
   async syncNow(): Promise<{ success: boolean; error?: string }> {
@@ -82,7 +102,7 @@ export class SyncEngine {
     this.broadcast({ ...this.getStatus(), syncing: true, online: true });
 
     try {
-      await this.pullFromSupabase();
+      await this.pullAllTables();
       await this.drainQueue();
       this.lastSync = new Date().toISOString();
       return { success: true };
@@ -94,26 +114,41 @@ export class SyncEngine {
     }
   }
 
-  private async pullFromSupabase() {
-    // Puxa produtos do Supabase para cache local
-    const { data: products } = await this.supabase
-      .from("products")
-      .select("id, name, sku, price, stock, is_active, category_id, description, updated_at");
+  // Sincroniza todas as tabelas ERP para o arquivo local offline_data.json
+  private async pullAllTables() {
+    const tables: Record<string, unknown[]> = {};
 
-    if (products) {
-      for (const p of products) {
-        this.db.upsertProduct({
-          id: p.id,
-          name: p.name,
-          sku: p.sku ?? null,
-          price: p.price,
-          stock: p.stock ?? 0,
-          is_active: p.is_active ? 1 : 0,
-          category_id: p.category_id ?? null,
-          description: p.description ?? null,
-          updated_at: p.updated_at ?? null,
-        });
+    for (const table of SYNC_TABLES) {
+      try {
+        const rows: unknown[] = [];
+        let page = 0;
+        while (true) {
+          const { data, error } = await (this.supabase as any)
+            .from(table)
+            .select("*")
+            .range(page * 1000, (page + 1) * 1000 - 1);
+          if (error || !data) break;
+          rows.push(...data);
+          if (data.length < 1000) break;
+          page++;
+        }
+        tables[table] = rows;
+      } catch (e) {
+        console.warn(`[sync] erro ao puxar ${table}:`, e);
       }
+    }
+
+    const outFile = path.join(this.userDataPath, "offline_data.json");
+    fs.writeFileSync(
+      outFile,
+      JSON.stringify({ exportedAt: new Date().toISOString(), tables }, null, 2),
+      "utf-8"
+    );
+
+    // Mantém cache de produtos no LocalDB também (compatibilidade)
+    const products = (tables["products"] ?? []) as Array<Record<string, unknown>>;
+    for (const p of products) {
+      this.db.upsertProduct(p);
     }
   }
 
@@ -123,14 +158,14 @@ export class SyncEngine {
       try {
         const payload = JSON.parse(op.payload);
         if (op.operation === "INSERT") {
-          const { error } = await this.supabase.from(op.table_name).insert(payload);
+          const { error } = await (this.supabase as any).from(op.table_name).insert(payload);
           if (error) throw error;
         } else if (op.operation === "UPDATE") {
-          const { error } = await this.supabase
+          const { error } = await (this.supabase as any)
             .from(op.table_name).update(payload).eq("id", op.record_id);
           if (error) throw error;
         } else if (op.operation === "DELETE") {
-          const { error } = await this.supabase
+          const { error } = await (this.supabase as any)
             .from(op.table_name).delete().eq("id", op.record_id);
           if (error) throw error;
         }
@@ -147,7 +182,7 @@ export class SyncEngine {
         const items = JSON.parse(sale.items as string);
         const payments = JSON.parse(sale.payments as string);
 
-        const { data: inserted, error } = await this.supabase
+        const { data: inserted, error } = await (this.supabase as any)
           .from("erp_pdv_sales")
           .insert({
             id: sale.id,
@@ -161,17 +196,16 @@ export class SyncEngine {
 
         if (error) throw error;
 
-        await this.supabase.from("erp_pdv_sale_items").insert(
+        await (this.supabase as any).from("erp_pdv_sale_items").insert(
           items.map((i: Record<string, unknown>) => ({ ...i, sale_id: inserted.id }))
         );
-        await this.supabase.from("erp_pdv_sale_payments").insert(
+        await (this.supabase as any).from("erp_pdv_sale_payments").insert(
           payments.map((p: Record<string, unknown>) => ({ ...p, sale_id: inserted.id }))
         );
 
-        // Aplica delta de estoque — pode ir negativo (comportamento desejado)
         for (const item of items as Array<{ product_id: string; quantity: number }>) {
           if (!item.product_id) continue;
-          await this.supabase.rpc("decrement_stock", {
+          await (this.supabase as any).rpc("decrement_stock", {
             p_product_id: item.product_id,
             p_qty: item.quantity,
           });

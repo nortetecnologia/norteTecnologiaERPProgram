@@ -82,8 +82,11 @@ app.whenReady().then(async () => {
   await createWindow();
 
   // SyncEngine inicializa depois (pode falhar se credenciais ausentes)
+  const userDataPath = app.getPath("userData");
   try {
-    syncEngine = new SyncEngine(db);
+    syncEngine = new SyncEngine(db, userDataPath);
+    // Sync completo imediatamente ao abrir o programa
+    setTimeout(() => syncEngine?.syncNow(), 3000);
   } catch (err) {
     console.error("[sync] falha ao inicializar SyncEngine:", err);
   }
@@ -149,7 +152,6 @@ app.whenReady().then(async () => {
   });
 
   // Offline mode
-  const userDataPath = app.getPath("userData");
   const offlineFlag = path.join(userDataPath, ".offline");
 
   ipcMain.handle("offline:status", () => fs.existsSync(offlineFlag));

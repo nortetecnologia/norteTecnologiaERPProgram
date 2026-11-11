@@ -1,4 +1,5 @@
 "use server";
+import { markLocalDataStale } from "@/lib/offline";
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -12,7 +13,7 @@ async function getAuth() {
 export async function createCustomer(formData: FormData) {
   const supabase = await getAuth();
   const name = (formData.get("name") as string)?.trim();
-  if (!name) return { error: "Nome é obrigatório." };
+  if (!name) return { error: "Nome Ã© obrigatÃ³rio." };
 
   const { error } = await supabase.from("erp_customers").insert({
     name,
@@ -27,13 +28,14 @@ export async function createCustomer(formData: FormData) {
   if (error) return { error: error.message };
   revalidatePath("/clientes");
   revalidateTag("customers");
+  markLocalDataStale();
   return { success: true };
 }
 
 export async function updateCustomer(id: string, formData: FormData) {
   const supabase = await getAuth();
   const name = (formData.get("name") as string)?.trim();
-  if (!name) return { error: "Nome é obrigatório." };
+  if (!name) return { error: "Nome Ã© obrigatÃ³rio." };
 
   const { error } = await supabase
     .from("erp_customers")
@@ -53,6 +55,7 @@ export async function updateCustomer(id: string, formData: FormData) {
   revalidatePath("/clientes");
   revalidatePath(`/clientes/${id}`);
   revalidateTag("customers");
+  markLocalDataStale();
   return { success: true };
 }
 

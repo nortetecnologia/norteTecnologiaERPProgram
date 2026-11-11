@@ -1,4 +1,5 @@
 "use server";
+import { markLocalDataStale } from "@/lib/offline";
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
@@ -110,6 +111,8 @@ export async function createSale(prevState: unknown, formData: FormData) {
   revalidatePath("/pdv");
   revalidatePath("/estoque");
   revalidateTag("sales");
+  markLocalDataStale();
   revalidateTag("dashboard");
+  markLocalDataStale();
   redirect(`/pdv/${sale.id}/recibo`);
 }
