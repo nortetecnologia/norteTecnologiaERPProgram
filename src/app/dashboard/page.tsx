@@ -1,45 +1,17 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import AppLayout from "@/components/layout/AppLayout";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
-import { extractRole } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
+import { getCachedDashboard } from "@/lib/queries";
 
 export default async function DashboardPage() {
-  const anonClient = await createClient();
-  const { data: { user } } = await anonClient.auth.getUser();
-  if (!user) redirect("/login");
-
-  const role = extractRole(user.app_metadata);
-
-  const supabase = createAdminClient();
+  const { role } = await requireAuth();
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayISO = today.toISOString();
 
-  const [salesRes, osRes, stockRes, recentSalesRes] = await Promise.all([
-    supabase
-      .from("erp_pdv_sales")
-      .select("total")
-      .gte("created_at", todayISO),
-    supabase
-      .from("erp_service_orders")
-      .select("id", { count: "exact" })
-      .in("status", ["awaiting", "in_progress"]),
-    supabase
-      .from("products")
-      .select("id", { count: "exact" })
-      .lt("stock", 5)
-      .eq("is_active", true)
-      .eq("product_type", "product"),
-    supabase
-      .from("erp_pdv_sales")
-      .select("id, sale_number, total, created_at")
-      .order("created_at", { ascending: false })
-      .limit(5),
-  ]);
+  const { salesRes, osRes, stockRes, recentSalesRes } = await getCachedDashboard(todayISO);
 
   const todaySalesTotal = (salesRes.data ?? []).reduce(
     (sum, s) => sum + (s.total ?? 0),

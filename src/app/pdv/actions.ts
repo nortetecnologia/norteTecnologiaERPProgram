@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/auth";
@@ -109,5 +109,7 @@ export async function createSale(prevState: unknown, formData: FormData) {
 
   revalidatePath("/pdv");
   revalidatePath("/estoque");
+  revalidateTag("sales");
+  revalidateTag("dashboard");
   redirect(`/pdv/${sale.id}/recibo`);
 }

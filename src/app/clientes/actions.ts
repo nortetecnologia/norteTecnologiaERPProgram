@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/auth";
 
@@ -26,6 +26,7 @@ export async function createCustomer(formData: FormData) {
 
   if (error) return { error: error.message };
   revalidatePath("/clientes");
+  revalidateTag("customers");
   return { success: true };
 }
 
@@ -51,6 +52,7 @@ export async function updateCustomer(id: string, formData: FormData) {
   if (error) return { error: error.message };
   revalidatePath("/clientes");
   revalidatePath(`/clientes/${id}`);
+  revalidateTag("customers");
   return { success: true };
 }
 

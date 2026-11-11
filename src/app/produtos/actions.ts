@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/auth";
@@ -68,6 +68,7 @@ export async function saveProduto(prevState: unknown, formData: FormData) {
 
   revalidatePath("/produtos");
   revalidatePath("/pdv");
+  revalidateTag("products");
   redirect("/produtos");
 }
 
@@ -76,5 +77,6 @@ export async function deleteProduto(id: string) {
   const { error } = await supabase.from("products").delete().eq("id", id);
   if (error) return { error: error.message };
   revalidatePath("/produtos");
+  revalidateTag("products");
   redirect("/produtos");
 }

@@ -1,33 +1,31 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import AppLayout from "@/components/layout/AppLayout";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatCurrency } from "@/lib/utils";
+import { requireAuth } from "@/lib/auth";
+import { getCachedProducts } from "@/lib/queries";
 
 export default async function ProdutosPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
-  const anonClient = await createClient();
-  const { data: { user } } = await anonClient.auth.getUser();
-  if (!user) redirect("/login");
-
+  await requireAuth();
   const { q } = await searchParams;
-  const supabase = createAdminClient();
 
-  let query = supabase
-    .from("products")
-    .select("id, name, sku, price, stock, is_active, product_images(url, is_primary)")
-    .order("name")
-    .limit(200);
-
-  if (q) query = query.or(`name.ilike.%${q}%,sku.ilike.%${q}%`);
-
-  const { data: productsRaw, error: productsError } = await query;
-  if (productsError) console.error("[produtos] query error:", productsError.message);
-  const products = productsRaw ?? [];
+  let products;
+  if (q) {
+    const supabase = createAdminClient();
+    const { data, error } = await supabase
+      .from("products")
+      .select("id, name, sku, price, stock, is_active, product_images(url, is_primary)")
+      .order("name").limit(200)
+      .or(`name.ilike.%${q}%,sku.ilike.%${q}%`);
+    if (error) console.error("[produtos] query error:", error.message);
+    products = data ?? [];
+  } else {
+    products = await getCachedProducts();
+  }
 
   return (
     <AppLayout>
@@ -67,13 +65,7 @@ export default async function ProdutosPage({
               </tr>
             </thead>
             <tbody>
-              {productsError ? (
-                <tr>
-                  <td colSpan={6} className="text-center py-12 text-red-400 text-xs px-5">
-                    Erro ao carregar produtos: {productsError.message}
-                  </td>
-                </tr>
-              ) : products.length === 0 ? (
+              {products.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center py-12 text-gray-500">
                     Nenhum produto encontrado.

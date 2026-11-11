@@ -1,56 +1,15 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import AppLayout from "@/components/layout/AppLayout";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { formatCurrency } from "@/lib/utils";
 import type { Product } from "@/types";
 import AjusteEstoqueForm from "./AjusteEstoqueForm";
+import { requireAuth } from "@/lib/auth";
+import { getCachedStock } from "@/lib/queries";
 
 export default async function EstoquePage() {
-  const anonClient = await createClient();
-  const { data: { user } } = await anonClient.auth.getUser();
-  if (!user) redirect("/login");
+  await requireAuth();
 
-  const supabase = createAdminClient();
-
-  const [allProductsRes, lowStockRes, noImageRes, noSkuRes, recentMovRes] = await Promise.all([
-    supabase
-      .from("products")
-      .select("id, name, sku, stock")
-      .eq("is_active", true)
-      .eq("product_type", "product")
-      .order("name")
-      .limit(500),
-    supabase
-      .from("products")
-      .select("id, name, sku, stock, price, categories(name)")
-      .eq("is_active", true)
-      .eq("product_type", "product")
-      .lt("stock", 5)
-      .order("stock")
-      .limit(50)
-      .returns<Product[]>(),
-    supabase
-      .from("products")
-      .select("id, name, sku, stock, is_active")
-      .eq("product_type", "product")
-      .or("images.is.null,images.eq.{}")
-      .limit(50)
-      .returns<Product[]>(),
-    supabase
-      .from("products")
-      .select("id, name, stock, is_active")
-      .eq("product_type", "product")
-      .is("sku", null)
-      .limit(50)
-      .returns<Product[]>(),
-    supabase
-      .from("erp_stock_movements")
-      .select("id, type, quantity, reason, created_at, products(name, sku)")
-      .order("created_at", { ascending: false })
-      .limit(10),
-  ]);
+  const { allProductsRes, lowStockRes, noImageRes, noSkuRes, recentMovRes } = await getCachedStock();
 
   const allProducts = allProductsRes.data ?? [];
   const lowStock = lowStockRes.data ?? [];

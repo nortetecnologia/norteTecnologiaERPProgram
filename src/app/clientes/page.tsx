@@ -1,34 +1,29 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import AppLayout from "@/components/layout/AppLayout";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDate, formatPhone } from "@/lib/utils";
 import type { Customer } from "@/types";
+import { requireAuth } from "@/lib/auth";
+import { getCachedCustomers } from "@/lib/queries";
 
 export default async function ClientesPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
-  const anonClient = await createClient();
-  const { data: { user } } = await anonClient.auth.getUser();
-  if (!user) redirect("/login");
-
+  await requireAuth();
   const { q } = await searchParams;
-  const supabase = createAdminClient();
 
-  let query = supabase
-    .from("erp_customers")
-    .select("*")
-    .order("name");
-
+  let customers: Customer[];
   if (q) {
-    query = query.or(`name.ilike.%${q}%,phone.ilike.%${q}%,cpf_cnpj.ilike.%${q}%`);
+    const supabase = createAdminClient();
+    const { data } = await supabase.from("erp_customers").select("*").order("name")
+      .or(`name.ilike.%${q}%,phone.ilike.%${q}%,cpf_cnpj.ilike.%${q}%`)
+      .returns<Customer[]>();
+    customers = data ?? [];
+  } else {
+    customers = (await getCachedCustomers()) as Customer[];
   }
-
-  const { data: customersRaw } = await query.returns<Customer[]>();
-  const customers = customersRaw ?? [];
 
   return (
     <AppLayout>

@@ -35,20 +35,15 @@ export async function saveSettings(prevState: unknown, formData: FormData) {
     position: i,
   }));
 
+  // Marcar TODOS como inativo; depois upsert restaura os ativos
+  await supabase.from("payment_methods").update({ is_active: false }).gte("id", 0);
+
   // Upsert métodos ativos
   const { error: upsertError } = await supabase
     .from("payment_methods")
     .upsert(activeMethods, { onConflict: "name" });
 
   if (upsertError) return { error: upsertError.message };
-
-  // Marcar como inativo qualquer método não presente na lista
-  const { error: deactivateError } = await supabase
-    .from("payment_methods")
-    .update({ is_active: false })
-    .not("name", "in", `(${names.map((n) => `"${n}"`).join(",")})`);
-
-  if (deactivateError) return { error: deactivateError.message };
 
   // Sincronizar labels com store_settings.payment_methods (compatibilidade com o site)
   const syncPayload = { ...storePayload, payment_methods: activeMethods.map((m) => m.label) };

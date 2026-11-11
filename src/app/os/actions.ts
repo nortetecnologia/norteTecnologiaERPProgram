@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/auth";
@@ -65,6 +65,7 @@ export async function createServiceOrder(_prevState: unknown, formData: FormData
   }
 
   revalidatePath("/os");
+  revalidateTag("service-orders");
   redirect(`/os/${data.id}`);
 }
 
@@ -77,6 +78,7 @@ export async function updateOSStatus(id: string, status: OSStatus) {
   if (error) return { error: error.message };
   revalidatePath(`/os/${id}`);
   revalidatePath("/os");
+  revalidateTag("service-orders");
   return { success: true };
 }
 

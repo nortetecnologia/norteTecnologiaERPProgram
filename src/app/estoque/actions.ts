@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/auth";
 
@@ -46,5 +46,7 @@ export async function adjustStock(prevState: unknown, formData: FormData) {
 
   revalidatePath("/estoque");
   revalidatePath("/produtos");
+  revalidateTag("products");
+  revalidateTag("stock-movements");
   return { success: true, productName: product.name, newStock };
 }

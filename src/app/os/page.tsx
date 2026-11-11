@@ -1,34 +1,33 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import AppLayout from "@/components/layout/AppLayout";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDate, formatOSNumber } from "@/lib/utils";
 import { OS_STATUS_LABELS, OS_STATUS_COLORS, type ServiceOrder } from "@/types";
+import { requireAuth } from "@/lib/auth";
+import { getCachedServiceOrders } from "@/lib/queries";
 
 export default async function OSPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string; status?: string }>;
 }) {
-  const anonClient = await createClient();
-  const { data: { user } } = await anonClient.auth.getUser();
-  if (!user) redirect("/login");
-
+  await requireAuth();
   const { q, status } = await searchParams;
-  const supabase = createAdminClient();
 
-  let query = supabase
-    .from("erp_service_orders")
-    .select("*, erp_customers(name, phone)")
-    .order("created_at", { ascending: false })
-    .limit(100);
-
-  if (status) query = query.eq("status", status);
-  if (q) query = query.ilike("title", `%${q}%`);
-
-  const { data: ordersRaw } = await query.returns<ServiceOrder[]>();
-  const orders = ordersRaw ?? [];
+  let orders: ServiceOrder[];
+  if (q) {
+    const supabase = createAdminClient();
+    const { data } = await supabase
+      .from("erp_service_orders")
+      .select("*, erp_customers(name, phone)")
+      .order("created_at", { ascending: false })
+      .limit(100)
+      .ilike("title", `%${q}%`)
+      .returns<ServiceOrder[]>();
+    orders = data ?? [];
+  } else {
+    orders = (await getCachedServiceOrders(status)) as ServiceOrder[];
+  }
 
   const statuses = ["awaiting", "in_progress", "done", "delivered", "cancelled"] as const;
 

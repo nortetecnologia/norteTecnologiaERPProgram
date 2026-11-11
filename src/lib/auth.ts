@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "./supabase/server";
 import { createAdminClient } from "./supabase/admin";
 import { redirect } from "next/navigation";
@@ -14,24 +15,25 @@ export function extractRole(appMetadata: Record<string, unknown> | null | undefi
 
 /**
  * Fetches the current user and their ERP role.
- * Throws redirect to /login if not authenticated or no ERP access.
+ * Uses getSession() (cookie-only, no network) since middleware already verified the JWT.
+ * Wrapped in React cache() so multiple calls within the same request are deduplicated.
  */
-export async function requireAuth(): Promise<{ userId: string; role: ERPRole }> {
+export const requireAuth = cache(async (): Promise<{ userId: string; role: ERPRole }> => {
   const supabase = await createClient();
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  if (!user) redirect("/login");
+  if (!session) redirect("/login");
 
-  const role = extractRole(user.app_metadata);
+  const role = extractRole(session.user.app_metadata);
   if (!role) {
     await supabase.auth.signOut();
     redirect("/login?error=unauthorized");
   }
 
-  return { userId: user.id, role };
-}
+  return { userId: session.user.id, role };
+});
 
 /** Like requireAuth but also demands admin role. */
 export async function requireAdmin(): Promise<{ userId: string; role: "admin" }> {
