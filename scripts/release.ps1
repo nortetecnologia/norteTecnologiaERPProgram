@@ -9,9 +9,10 @@ param(
 $tag = "v$Version"
 
 # Atualizar versao no package.json
-$pkg = Get-Content package.json -Raw | ConvertFrom-Json
-$pkg.version = $Version
-$pkg | ConvertTo-Json -Depth 100 | Out-File -FilePath package.json -Encoding utf8NoBOM
+$content = Get-Content package.json -Raw
+$content = $content -replace '"version": "[^"]*"', "`"version`": `"$Version`""
+$utf8NoBOM = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText((Resolve-Path "package.json").Path, $content, $utf8NoBOM)
 
 Write-Host "Versao atualizada para $Version"
 
