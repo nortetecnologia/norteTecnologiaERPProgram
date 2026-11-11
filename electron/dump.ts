@@ -81,6 +81,81 @@ export async function dumpSupabase(destPath: string): Promise<DumpResult> {
   return { success: true, path: outFile, tables: exported, totalRows };
 }
 
+export interface RestoreResult {
+  success: boolean;
+  tables?: string[];
+  totalRows?: number;
+  error?: string;
+}
+
+// Ordem de inserção respeitando FKs
+const RESTORE_ORDER = [
+  "store_settings",
+  "categories",
+  "products",
+  "product_images",
+  "payment_methods",
+  "erp_customers",
+  "erp_pdv_sales",
+  "erp_pdv_sale_items",
+  "erp_pdv_sale_payments",
+  "erp_service_orders",
+  "erp_service_order_items",
+  "erp_stock_movements",
+];
+
+export async function restoreFromDump(dumpFilePath: string): Promise<RestoreResult> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SECRET_KEY;
+  if (!url || !key) {
+    return { success: false, error: "Credenciais do Supabase não encontradas em .env.local" };
+  }
+
+  let raw: string;
+  try {
+    raw = fs.readFileSync(dumpFilePath, "utf-8");
+  } catch (e: any) {
+    return { success: false, error: `Não foi possível ler o arquivo: ${e.message}` };
+  }
+
+  let dumpData: { tables: Record<string, unknown[]> };
+  try {
+    dumpData = JSON.parse(raw);
+  } catch {
+    return { success: false, error: "Arquivo inválido — não é um JSON de dump válido." };
+  }
+
+  if (!dumpData.tables) {
+    return { success: false, error: "Formato inválido — campo 'tables' não encontrado." };
+  }
+
+  const supabase = createClient(url, key);
+  const restored: string[] = [];
+  let totalRows = 0;
+
+  for (const table of RESTORE_ORDER) {
+    const rows = dumpData.tables[table];
+    if (!rows || rows.length === 0) continue;
+    try {
+      // Upsert em lotes de 500 para evitar timeout
+      const BATCH = 500;
+      for (let i = 0; i < rows.length; i += BATCH) {
+        const batch = rows.slice(i, i + BATCH);
+        const { error } = await supabase.from(table).upsert(batch as any, { onConflict: "id" });
+        if (error) {
+          console.warn(`[restore] ${table} lote ${i}: ${error.message}`);
+        }
+      }
+      restored.push(table);
+      totalRows += rows.length;
+    } catch (e) {
+      console.warn(`[restore] erro em ${table}:`, e);
+    }
+  }
+
+  return { success: true, tables: restored, totalRows };
+}
+
 // Dump específico para offline mode — salva em userData/offline_data.json
 export async function dumpForOffline(userDataPath: string): Promise<DumpResult> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

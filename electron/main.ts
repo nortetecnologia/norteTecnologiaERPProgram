@@ -135,6 +135,18 @@ app.whenReady().then(async () => {
     const { dumpSupabase } = await import("./dump");
     return dumpSupabase(destPath);
   });
+  ipcMain.handle("dump:chooseFile", async () => {
+    const result = await dialog.showOpenDialog(mainWindow!, {
+      properties: ["openFile"],
+      title: "Escolha o arquivo de dump para restaurar",
+      filters: [{ name: "Dump JSON", extensions: ["json"] }],
+    });
+    return result.canceled ? null : result.filePaths[0];
+  });
+  ipcMain.handle("dump:restore", async (_e, filePath: string) => {
+    const { restoreFromDump } = await import("./dump");
+    return restoreFromDump(filePath);
+  });
 
   // Offline mode
   const userDataPath = app.getPath("userData");

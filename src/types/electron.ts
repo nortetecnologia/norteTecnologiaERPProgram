@@ -21,6 +21,13 @@ export interface DumpResult {
   error?: string;
 }
 
+export interface RestoreResult {
+  success: boolean;
+  tables?: string[];
+  totalRows?: number;
+  error?: string;
+}
+
 export interface ElectronAPI {
   getSyncStatus: () => Promise<SyncStatus>;
   toggleSync: (enabled: boolean) => Promise<void>;
@@ -33,6 +40,8 @@ export interface ElectronAPI {
   chooseBackupPath: () => Promise<string | null>;
   dumpChoosePath: () => Promise<string | null>;
   dumpRun: (destPath: string) => Promise<DumpResult>;
+  dumpChooseFile: () => Promise<string | null>;
+  dumpRestore: (filePath: string) => Promise<RestoreResult>;
   offlineStatus: () => Promise<boolean>;
   offlineGo: () => Promise<{ success: boolean; tables?: string[]; totalRows?: number; error?: string }>;
   offlineBack: () => Promise<{ success: boolean }>;
