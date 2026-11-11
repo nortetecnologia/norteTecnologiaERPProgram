@@ -44,7 +44,7 @@
   "build": {
     "appId": "com.nortetecnologia.erp",
     "productName": "Norte Tecnologia ERP",
-    "copyright": "Copyright ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â© 2024 Norte Tecnologia",
+    "copyright": "Copyright ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â© 2024 Norte Tecnologia",
     "asar": true,
     "directories": {
       "output": "release",
