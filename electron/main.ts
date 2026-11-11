@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, Menu } from "electron";
 import { autoUpdater } from "electron-updater";
 import * as path from "path";
 import * as fs from "fs";
@@ -11,7 +11,6 @@ let syncEngine: SyncEngine | null = null;
 
 const PORT = 3721;
 
-// Carrega .env.local do diretório de recursos (para env vars de runtime)
 function loadEnvFromResources() {
   const envPaths = app.isPackaged
     ? [
@@ -36,6 +35,12 @@ function loadEnvFromResources() {
   }
 }
 
+function getLoadingPage(): string {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, "loading.html")
+    : path.join(__dirname, "loading.html");
+}
+
 async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -49,21 +54,31 @@ async function createWindow() {
     },
     title: "Norte Tecnologia ERP",
     icon: path.join(__dirname, "../public/icon-512.png"),
-    show: true, // mostra imediatamente
+    show: true,
     backgroundColor: "#0a0a0a",
+    autoHideMenuBar: true,
   });
 
-  mainWindow.loadURL(`http://localhost:${PORT}`);
+  // F12 abre DevTools para debug
+  mainWindow.webContents.on("before-input-event", (_e, input) => {
+    if (input.key === "F12") mainWindow?.webContents.openDevTools();
+  });
+
+  // Mostra tela de loading enquanto o servidor sobe
+  mainWindow.loadFile(getLoadingPage());
   mainWindow.on("closed", () => { mainWindow = null; });
 }
 
 app.whenReady().then(async () => {
+  // Remove menu nativo (File, Edit, View, Window, Help)
+  Menu.setApplicationMenu(null);
+
   loadEnvFromResources();
 
   const db = new LocalDB();
   await db.init();
 
-  // Janela primeiro — sempre visível independente de erros de sync
+  // Janela primeiro com tela de loading
   await createWindow();
 
   // SyncEngine inicializa depois (pode falhar se credenciais ausentes)
@@ -75,7 +90,7 @@ app.whenReady().then(async () => {
 
   try {
     await startNextServer(PORT);
-    // Recarrega a página depois que o servidor está pronto
+    // Navega para o app quando o servidor estiver pronto
     mainWindow?.loadURL(`http://localhost:${PORT}`);
   } catch (err) {
     dialog.showErrorBox(

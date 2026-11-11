@@ -78,6 +78,10 @@
       {
         "from": ".env.local",
         "to": "app/.env.local"
+      },
+      {
+        "from": "electron/loading.html",
+        "to": "loading.html"
       }
     ],
     "win": {
