@@ -2,7 +2,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth";
 import ConfigForm from "./ConfigForm";
-import { BackupConfig } from "@/components/desktop/DesktopOnly";
+import { BackupConfig, DumpConfig } from "@/components/desktop/DesktopOnly";
 
 export default async function ConfiguracoesPage() {
   await requireAdmin();
@@ -19,6 +19,7 @@ export default async function ConfiguracoesPage() {
         <h1 className="text-2xl font-bold text-white mb-6">Configurações</h1>
         <ConfigForm settings={settings} paymentMethods={paymentMethods ?? []} />
         <BackupConfig />
+        <DumpConfig />
       </div>
     </AppLayout>
   );

@@ -11,3 +11,8 @@ export const BackupConfig = dynamic(
   () => import("./BackupConfig"),
   { ssr: false }
 );
+
+export const DumpConfig = dynamic(
+  () => import("./DumpConfig"),
+  { ssr: false }
+);

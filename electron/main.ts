@@ -122,6 +122,19 @@ app.whenReady().then(async () => {
     });
     return result.canceled ? null : result.filePaths[0];
   });
+
+  // Dump completo do Supabase
+  ipcMain.handle("dump:choosePath", async () => {
+    const result = await dialog.showOpenDialog(mainWindow!, {
+      properties: ["openDirectory"],
+      title: "Escolha onde salvar o dump do Supabase",
+    });
+    return result.canceled ? null : result.filePaths[0];
+  });
+  ipcMain.handle("dump:run", async (_e, destPath: string) => {
+    const { dumpSupabase } = await import("./dump");
+    return dumpSupabase(destPath);
+  });
 });
 
 app.on("window-all-closed", () => {

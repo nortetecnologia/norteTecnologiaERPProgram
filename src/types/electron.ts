@@ -13,6 +13,14 @@ export interface BackupConfigData {
   keepLast: number;
 }
 
+export interface DumpResult {
+  success: boolean;
+  path?: string;
+  tables?: string[];
+  totalRows?: number;
+  error?: string;
+}
+
 export interface ElectronAPI {
   getSyncStatus: () => Promise<SyncStatus>;
   toggleSync: (enabled: boolean) => Promise<void>;
@@ -23,6 +31,8 @@ export interface ElectronAPI {
   setBackupConfig: (config: BackupConfigData) => Promise<void>;
   backupNow: () => Promise<{ success: boolean; path?: string; error?: string }>;
   chooseBackupPath: () => Promise<string | null>;
+  dumpChoosePath: () => Promise<string | null>;
+  dumpRun: (destPath: string) => Promise<DumpResult>;
 }
 
 declare global {
