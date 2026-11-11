@@ -33,6 +33,7 @@ export async function startNextServer(port: number): Promise<void> {
       PORT: String(port),
       HOSTNAME: "127.0.0.1",
       NODE_ENV: "production",
+      USER_DATA_PATH: app.getPath("userData"),
     };
 
     serverProcess = fork(serverJs, [], {

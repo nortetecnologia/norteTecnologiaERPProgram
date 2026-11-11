@@ -135,6 +135,29 @@ app.whenReady().then(async () => {
     const { dumpSupabase } = await import("./dump");
     return dumpSupabase(destPath);
   });
+
+  // Offline mode
+  const userDataPath = app.getPath("userData");
+  const offlineFlag = path.join(userDataPath, ".offline");
+
+  ipcMain.handle("offline:status", () => fs.existsSync(offlineFlag));
+
+  ipcMain.handle("offline:go", async () => {
+    try {
+      const { dumpForOffline } = await import("./dump");
+      const result = await dumpForOffline(userDataPath);
+      if (!result.success) return result;
+      fs.writeFileSync(offlineFlag, new Date().toISOString(), "utf-8");
+      return { success: true, tables: result.tables, totalRows: result.totalRows };
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  });
+
+  ipcMain.handle("offline:back", () => {
+    if (fs.existsSync(offlineFlag)) fs.unlinkSync(offlineFlag);
+    return { success: true };
+  });
 });
 
 function setupAutoUpdater() {

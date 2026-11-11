@@ -33,6 +33,9 @@ export interface ElectronAPI {
   chooseBackupPath: () => Promise<string | null>;
   dumpChoosePath: () => Promise<string | null>;
   dumpRun: (destPath: string) => Promise<DumpResult>;
+  offlineStatus: () => Promise<boolean>;
+  offlineGo: () => Promise<{ success: boolean; tables?: string[]; totalRows?: number; error?: string }>;
+  offlineBack: () => Promise<{ success: boolean }>;
 }
 
 declare global {

@@ -20,4 +20,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Dump Supabase
   dumpChoosePath: () => ipcRenderer.invoke("dump:choosePath"),
   dumpRun: (destPath: string) => ipcRenderer.invoke("dump:run", destPath),
+
+  // Offline mode
+  offlineStatus: () => ipcRenderer.invoke("offline:status"),
+  offlineGo: () => ipcRenderer.invoke("offline:go"),
+  offlineBack: () => ipcRenderer.invoke("offline:back"),
 });
