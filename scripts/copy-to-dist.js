@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 const src = path.join(__dirname, "..", "release", "win-unpacked");
-const dest = path.join(__dirname, "..", "..", "Norte Tecnologia ERP Desktop");
+const dest = path.join(__dirname, "..");
 
 if (!fs.existsSync(src)) {
   console.error("win-unpacked nao encontrado em:", src);
@@ -25,4 +25,3 @@ function copyDir(from, to) {
 console.log("Copiando para:", dest);
 copyDir(src, dest);
 console.log("✓ Programa disponivel em:", path.join(dest, "Norte Tecnologia ERP.exe"));
-console.log("   Abra essa pasta e execute o .exe de dentro dela.");

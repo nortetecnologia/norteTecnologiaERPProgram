@@ -42,3 +42,14 @@ release/
 dist/
 .next/
 node_modules/
+
+# Electron runtime (copiado para raiz pelo copy-to-dist.js)
+Norte Tecnologia ERP.exe
+*.dll
+*.pak
+*.bin
+vk_swiftshader_icd.json
+LICENSE.electron.txt
+LICENSES.chromium.html
+locales/
+resources/
