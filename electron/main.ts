@@ -69,6 +69,8 @@ async function createWindow() {
   mainWindow.on("closed", () => { mainWindow = null; });
 }
 
+app.setAppUserModelId("com.nortetecnologia.erp");
+
 app.whenReady().then(async () => {
   // Remove menu nativo (File, Edit, View, Window, Help)
   Menu.setApplicationMenu(null);
