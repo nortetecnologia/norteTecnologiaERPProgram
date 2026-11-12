@@ -1,6 +1,6 @@
 {
   "name": "norte-tecnologia-erp",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "main": "dist/electron/main.js",
   "scripts": {
@@ -91,17 +91,23 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "dir",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "build-resources/icon.ico",
       "requestedExecutionLevel": "asInvoker",
       "verifyUpdateCodeSignature": false,
-      "signingHashAlgorithms": ["sha256"],
+      "signingHashAlgorithms": [
+        "sha256"
+      ],
       "signDlls": false
     },
     "nsis": {
