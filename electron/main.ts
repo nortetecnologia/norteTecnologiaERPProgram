@@ -194,8 +194,16 @@ function setupAutoUpdater() {
       defaultId: 0,
     }).then(({ response }) => {
       if (response === 0) {
+        // Para o servidor Next.js e fecha a janela antes do NSIS desinstalar
+        // para evitar que arquivos travados causem erro de desinstalação
+        stopNextServer();
+        app.removeAllListeners("window-all-closed");
+        if (mainWindow) {
+          mainWindow.destroy();
+          mainWindow = null;
+        }
         // isSilent=true evita UAC em instalações per-user; isForceRunAfter=true reabre o app
-        autoUpdater.quitAndInstall(true, true);
+        setTimeout(() => autoUpdater.quitAndInstall(true, true), 500);
       }
     });
   });
