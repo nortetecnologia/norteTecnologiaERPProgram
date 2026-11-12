@@ -65,7 +65,7 @@ export interface ServiceOrder {
   title: string;
   description?: string;
   status: OSStatus;
-  os_type: OSType;
+  os_type?: OSType;
   equipment?: string;
   serial_number?: string;
   labor_cost?: number;

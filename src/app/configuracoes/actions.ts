@@ -37,7 +37,7 @@ export async function saveSettings(prevState: unknown, formData: FormData) {
   }));
 
   // Marcar TODOS como inativo; depois upsert restaura os ativos
-  await supabase.from("payment_methods").update({ is_active: false }).gte("id", 0);
+  await supabase.from("payment_methods").update({ is_active: false }).gt("id", 0);
 
   // Upsert métodos ativos
   const { error: upsertError } = await supabase
