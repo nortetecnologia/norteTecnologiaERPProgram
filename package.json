@@ -1,6 +1,6 @@
 {
   "name": "norte-tecnologia-erp",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "main": "dist/electron/main.js",
   "scripts": {
@@ -113,12 +113,13 @@
     "nsis": {
       "oneClick": true,
       "perMachine": false,
+      "allowElevation": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Norte Tecnologia ERP",
       "installerIcon": "build-resources/icon.ico",
       "uninstallerIcon": "build-resources/icon.ico",
-      "runAfterFinish": false,
+      "runAfterFinish": true,
       "deleteAppDataOnUninstall": false
     },
     "publish": {

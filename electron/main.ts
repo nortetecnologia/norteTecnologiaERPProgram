@@ -187,16 +187,29 @@ function setupAutoUpdater() {
     dialog.showMessageBox(mainWindow, {
       type: "info",
       title: "Atualização disponível",
-      message: `Versão ${info.version} baixada. Reiniciar agora para aplicar?`,
-      buttons: ["Reiniciar agora", "Depois"],
+      message: `Versão ${info.version} pronta para instalar.\n\nO programa será reiniciado automaticamente.`,
+      buttons: ["Atualizar agora", "Depois"],
       defaultId: 0,
     }).then(({ response }) => {
-      if (response === 0) autoUpdater.quitAndInstall(false, true);
+      if (response === 0) {
+        // isSilent=true evita UAC em instalações per-user; isForceRunAfter=true reabre o app
+        autoUpdater.quitAndInstall(true, true);
+      }
     });
   });
 
   autoUpdater.on("error", (err) => {
     console.error("[updater]", err.message);
+    // Se falhar, orienta o usuário a baixar manualmente
+    if (mainWindow) {
+      dialog.showMessageBox(mainWindow, {
+        type: "warning",
+        title: "Falha na atualização automática",
+        message: "Não foi possível atualizar automaticamente.",
+        detail: "Por favor, baixe e instale a versão mais recente manualmente em:\nhttps://github.com/nortetecnologia/norteTecnologiaERPProgram/releases/latest",
+        buttons: ["OK"],
+      });
+    }
   });
 
   try {
