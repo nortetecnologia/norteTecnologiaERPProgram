@@ -56,6 +56,8 @@ export type OSStatus =
   | "delivered"
   | "cancelled";
 
+export type OSType = "service" | "delivery";
+
 export interface ServiceOrder {
   id: string;
   number: number;
@@ -63,6 +65,7 @@ export interface ServiceOrder {
   title: string;
   description?: string;
   status: OSStatus;
+  os_type: OSType;
   equipment?: string;
   serial_number?: string;
   labor_cost?: number;

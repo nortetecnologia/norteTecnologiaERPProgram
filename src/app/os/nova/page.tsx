@@ -17,8 +17,8 @@ export default async function NovaOSPage() {
 
   const { data: productsRaw } = await supabase
     .from("products")
-    .select("id, name, price, sku")
-    .eq("active", true)
+    .select("id, name, price, sku, product_type")
+    .eq("is_active", true)
     .order("name");
 
   const customers = customersRaw ?? [];

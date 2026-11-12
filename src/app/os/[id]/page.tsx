@@ -4,7 +4,12 @@ import AppLayout from "@/components/layout/AppLayout";
 import { requireAuth } from "@/lib/auth";
 import { getServiceOrderDetail } from "@/lib/queries";
 import { formatCurrency, formatDate, formatOSNumber, formatPhone } from "@/lib/utils";
-import { OS_STATUS_LABELS, OS_STATUS_COLORS, type ServiceOrder } from "@/types";
+import { OS_STATUS_LABELS, OS_STATUS_COLORS, type ServiceOrder, type OSType } from "@/types";
+
+const OS_TYPE_LABELS: Record<OSType, string> = {
+  service: "Serviço Técnico",
+  delivery: "Entrega de Produto",
+};
 import OSStatusForm from "./OSStatusForm";
 import OSImageUpload from "./OSImageUpload";
 
@@ -30,11 +35,16 @@ export default async function OSDetailPage({ params }: { params: Promise<{ id: s
         {/* Header */}
         <div className="flex items-start justify-between mb-6">
           <div>
-            <div className="flex items-center gap-3 mb-1">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
               <h1 className="text-2xl font-bold text-white">{formatOSNumber(os.number)}</h1>
               <span className={`text-xs px-2.5 py-1 rounded-full ${OS_STATUS_COLORS[os.status]}`}>
                 {OS_STATUS_LABELS[os.status]}
               </span>
+              {os.os_type === "delivery" && (
+                <span className="text-xs px-2.5 py-1 rounded-full bg-brand-yellow/15 text-brand-yellow border border-brand-yellow/30">
+                  📦 Entrega
+                </span>
+              )}
             </div>
             <p className="text-gray-400 text-sm">{os.title}</p>
           </div>
@@ -91,7 +101,7 @@ export default async function OSDetailPage({ params }: { params: Promise<{ id: s
         {/* Items */}
         <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl mb-4">
           <div className="px-5 py-3 border-b border-brand-gray-mid text-sm font-semibold text-gray-300">
-            Peças e Serviços
+            Serviços / Produtos
           </div>
           {items.length === 0 ? (
             <p className="px-5 py-4 text-sm text-gray-500">Nenhum item adicionado.</p>
