@@ -1,3 +1,4 @@
+import "./ws-polyfill";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { BrowserWindow } from "electron";
 import * as fs from "fs";
