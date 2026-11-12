@@ -3,21 +3,26 @@ import { createHmac } from "crypto";
 import { extractRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getCloudinaryCreds } from "@/lib/cloudinary";
+import { isOfflineMode } from "@/lib/offline";
+import { saveLocalImage } from "@/lib/offline-images";
 
 export async function POST(request: NextRequest) {
-  // Auth + ERP role check
-  const anonClient = await createClient();
-  const { data: { user } } = await anonClient.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
-  }
-  if (!extractRole(user.app_metadata)) {
-    return NextResponse.json({ error: "Acesso negado ao ERP." }, { status: 403 });
-  }
+  const offline = isOfflineMode();
+  const supabase = await createClient();
 
-  const creds = getCloudinaryCreds();
-  if (!creds) {
-    return NextResponse.json({ error: "Cloudinary não configurado." }, { status: 500 });
+  // Auth: offline usa getSession (cookie, sem rede); online usa getUser (valida JWT)
+  let appMetadata: Record<string, unknown> | null | undefined;
+  if (offline) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+    appMetadata = session.user.app_metadata;
+  } else {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+    appMetadata = user.app_metadata;
+  }
+  if (!extractRole(appMetadata)) {
+    return NextResponse.json({ error: "Acesso negado ao ERP." }, { status: 403 });
   }
 
   const formData = await request.formData();
@@ -41,6 +46,17 @@ export async function POST(request: NextRequest) {
 
   if (file.size > 10 * 1024 * 1024) {
     return NextResponse.json({ error: "Arquivo muito grande (máx 10 MB)." }, { status: 400 });
+  }
+
+  // Offline: salva localmente e enfileira o upload para quando voltar online
+  if (offline) {
+    const { localUrl } = saveLocalImage(buffer, file.type, folder);
+    return NextResponse.json({ url: localUrl, offline: true });
+  }
+
+  const creds = getCloudinaryCreds();
+  if (!creds) {
+    return NextResponse.json({ error: "Cloudinary não configurado." }, { status: 500 });
   }
 
   // Gerar assinatura Cloudinary

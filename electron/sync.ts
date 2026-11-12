@@ -1,6 +1,7 @@
 import "./ws-polyfill";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { BrowserWindow } from "electron";
+import { createHmac } from "crypto";
 import * as fs from "fs";
 import * as path from "path";
 import { LocalDB } from "./db";
@@ -196,6 +197,11 @@ export class SyncEngine {
 
     for (const op of ops) {
       try {
+        if (op.operation === "INSERT" || op.operation === "UPDATE") {
+          // Antes de enviar, sobe imagens salvas localmente (offline) para o Cloudinary
+          // e troca a URL local pela definitiva no payload.
+          op.payload = await this.resolveLocalImages(op.payload);
+        }
         if (op.operation === "INSERT") {
           const { error } = await (this.supabase as any).from(op.table).insert(op.payload);
           if (error) throw error;
@@ -230,6 +236,70 @@ export class SyncEngine {
       fs.writeFileSync(tmp, JSON.stringify({ ops: remaining }, null, 2), "utf-8");
       fs.renameSync(tmp, file);
     } catch { /* ignora */ }
+  }
+
+  // Sobe imagens salvas localmente (offline) e troca a URL /api/local-image/<id> pela do Cloudinary
+  private async resolveLocalImages(payload: any): Promise<any> {
+    if (!payload || typeof payload !== "object") return payload;
+    const LOCAL = "/api/local-image/";
+    if (typeof payload.url === "string" && payload.url.startsWith(LOCAL)) {
+      const cloud = await this.uploadPendingImage(payload.url.slice(LOCAL.length));
+      if (cloud) payload.url = cloud;
+    }
+    if (Array.isArray(payload.images)) {
+      for (let i = 0; i < payload.images.length; i++) {
+        const u = payload.images[i];
+        if (typeof u === "string" && u.startsWith(LOCAL)) {
+          const cloud = await this.uploadPendingImage(u.slice(LOCAL.length));
+          if (cloud) payload.images[i] = cloud;
+        }
+      }
+    }
+    return payload;
+  }
+
+  private async uploadPendingImage(id: string): Promise<string | null> {
+    try {
+      const dir = path.join(this.userDataPath, "pending_images");
+      const indexFile = path.join(dir, "index.json");
+      const map = JSON.parse(fs.readFileSync(indexFile, "utf-8"));
+      const meta = map[id];
+      if (!meta) return null;
+
+      const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+      const apiKey = process.env.CLOUDINARY_API_KEY;
+      const apiSecret = process.env.CLOUDINARY_API_SECRET;
+      if (!cloudName || !apiKey || !apiSecret) return null;
+
+      const filePath = path.join(dir, `${id}.${meta.ext}`);
+      const buffer = fs.readFileSync(filePath);
+      const timestamp = Math.floor(Date.now() / 1000).toString();
+      const signature = createHmac("sha1", apiSecret)
+        .update(`folder=${meta.folder}&timestamp=${timestamp}`)
+        .digest("hex");
+
+      const form = new FormData();
+      form.append("file", new Blob([new Uint8Array(buffer)]));
+      form.append("api_key", apiKey);
+      form.append("timestamp", timestamp);
+      form.append("signature", signature);
+      form.append("folder", meta.folder);
+
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: "POST",
+        body: form,
+      });
+      if (!res.ok) return null;
+      const data: any = await res.json();
+
+      // Sucesso: remove o arquivo local e a entrada do índice
+      try { fs.unlinkSync(filePath); } catch {}
+      delete map[id];
+      fs.writeFileSync(indexFile, JSON.stringify(map, null, 2), "utf-8");
+      return data.secure_url ?? null;
+    } catch {
+      return null;
+    }
   }
 
   // Sincroniza todas as tabelas ERP para o arquivo local offline_data.json

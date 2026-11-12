@@ -3,6 +3,8 @@
 import crypto from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { getCloudinaryCreds } from "@/lib/cloudinary";
+import { isOfflineMode } from "@/lib/offline";
+import { saveLocalImage } from "@/lib/offline-images";
 
 export type UploadResult = { url?: string; error?: string };
 
@@ -23,15 +25,28 @@ async function isValidImageBytes(file: File): Promise<boolean> {
 }
 
 export async function uploadOSImage(formData: FormData): Promise<UploadResult> {
-  const anonClient = await createClient();
-  const { data: { user } } = await anonClient.auth.getUser();
-  if (!user) return { error: "Não autorizado." };
+  const offline = isOfflineMode();
+  const supabase = await createClient();
+  if (offline) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return { error: "Não autorizado." };
+  } else {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "Não autorizado." };
+  }
 
   const file = formData.get("file") as File | null;
   if (!file || !(file instanceof File) || file.size === 0) return { error: "Arquivo inválido." };
   if (!file.type.startsWith("image/")) return { error: "Apenas imagens são permitidas." };
   if (file.size > 10 * 1024 * 1024) return { error: "Imagem muito grande. Máximo 10MB." };
   if (!(await isValidImageBytes(file))) return { error: "Formato de imagem inválido." };
+
+  // Offline: salva local e enfileira para subir ao Cloudinary quando voltar online
+  if (offline) {
+    const buffer = await file.arrayBuffer();
+    const { localUrl } = saveLocalImage(buffer, file.type, "norte-tecnologia/erp-os");
+    return { url: localUrl };
+  }
 
   const creds = getCloudinaryCreds();
   if (!creds) return { error: "Cloudinary não configurado." };

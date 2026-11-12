@@ -98,11 +98,18 @@ export default function DesktopBar() {
         </div>
       )}
       <div className="flex items-center gap-3 px-4 py-1.5 bg-brand-gray-dark border-b border-white/10 text-xs text-white/70">
-        {/* Status de conexão */}
-        <span className={`flex items-center gap-1.5 ${status.online ? "text-green-400" : "text-yellow-400"}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${status.online ? "bg-green-400" : "bg-yellow-400"}`} />
-          {status.online ? "Online" : "Offline"}
-        </span>
+        {/* Status: o modo offline manual tem prioridade sobre o estado de conexão */}
+        {offline ? (
+          <span className="flex items-center gap-1.5 text-yellow-400">
+            <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
+            Modo offline
+          </span>
+        ) : (
+          <span className={`flex items-center gap-1.5 ${status.online ? "text-green-400" : "text-red-400"}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${status.online ? "bg-green-400" : "bg-red-400"}`} />
+            {status.online ? "Online" : "Sem conexão"}
+          </span>
+        )}
 
         {/* Toggle sync */}
         <button
@@ -162,8 +169,8 @@ export default function DesktopBar() {
 
         <span className="ml-auto opacity-50">Último sync: {lastSyncLabel}</span>
 
-        {/* Botão modo offline */}
-        {!offline ? (
+        {/* Botão entrar em modo offline (ao sair, usa o "Voltar online" do banner) */}
+        {!offline && (
           <button
             onClick={handleGoOffline}
             disabled={offlineLoading}
@@ -181,11 +188,6 @@ export default function DesktopBar() {
             </svg>
             {offlineLoading ? "Baixando dados..." : "Ir offline"}
           </button>
-        ) : (
-          <span className="flex items-center gap-1.5 text-yellow-400">
-            <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
-            Modo offline
-          </span>
         )}
       </div>
     </>
