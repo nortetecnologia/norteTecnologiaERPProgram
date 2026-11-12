@@ -122,10 +122,14 @@ export default async function OSPrintPage({
 
         {/* ── Cabeçalho ─────────────────────────────────────── */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "4px" }}>
-          <div>
-            <div style={{ fontSize: "15pt", fontWeight: "900", letterSpacing: "1px" }}>{storeName.toUpperCase()}</div>
-            {storePhone && <div style={small}>{storePhone}</div>}
-            {storeAddress && <div style={small}>{storeAddress}</div>}
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Logo" style={{ height: "60px", width: "auto" }} />
+            <div>
+              <div style={{ fontSize: "15pt", fontWeight: "900", letterSpacing: "1px" }}>{storeName.toUpperCase()}</div>
+              {storePhone && <div style={small}>{storePhone}</div>}
+              {storeAddress && <div style={small}>{storeAddress}</div>}
+            </div>
           </div>
           {cnpj && (
             <div style={{ textAlign: "right", ...small }}>

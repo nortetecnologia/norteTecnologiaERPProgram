@@ -9,8 +9,6 @@ interface Customer { id: string; name: string; phone?: string }
 interface Product { id: string; name: string; price: number; sku?: string; product_type: "product" | "service" }
 interface Item { description: string; quantity: number; unit_price: number; product_id?: string }
 
-type OSType = "service" | "delivery";
-
 const INITIAL: { error?: string } = {};
 
 export default function OSForm({
@@ -21,7 +19,6 @@ export default function OSForm({
   products: Product[];
 }) {
   const [state, action, isPending] = useActionState(createServiceOrder, INITIAL);
-  const [osType, setOsType] = useState<OSType>("service");
   const [items, setItems] = useState<Item[]>([{ description: "", quantity: 1, unit_price: 0 }]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -95,58 +92,17 @@ export default function OSForm({
 
   return (
     <form action={action} className="space-y-6">
-      <input type="hidden" name="os_type" value={osType} />
-
       {state?.error && (
         <div className="bg-red-900/30 border border-red-700 text-red-300 text-sm rounded-xl px-4 py-3">
           {state.error}
         </div>
       )}
 
-      {/* OS Type */}
-      <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl p-5">
-        <div className="text-sm font-semibold text-gray-300 mb-3">Tipo de OS</div>
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => setOsType("service")}
-            className={`py-3 rounded-lg text-sm font-medium transition-colors flex flex-col items-center gap-1 ${
-              osType === "service"
-                ? "bg-brand-yellow text-brand-black"
-                : "bg-brand-gray-mid text-gray-400 hover:text-white"
-            }`}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>
-            </svg>
-            Serviço Técnico
-          </button>
-          <button
-            type="button"
-            onClick={() => setOsType("delivery")}
-            className={`py-3 rounded-lg text-sm font-medium transition-colors flex flex-col items-center gap-1 ${
-              osType === "delivery"
-                ? "bg-brand-yellow text-brand-black"
-                : "bg-brand-gray-mid text-gray-400 hover:text-white"
-            }`}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12H19M12 5l7 7-7 7"/>
-            </svg>
-            Entrega de Produto
-          </button>
-        </div>
-      </div>
-
-      {/* Customer + Title */}
+      {/* Cliente + Título */}
       <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl p-5 space-y-4">
         <div>
           <label className="text-xs text-gray-400 block mb-1">Cliente *</label>
-          <select
-            name="customer_id"
-            required
-            className={inputCls}
-          >
+          <select name="customer_id" required className={inputCls}>
             <option value="">Selecione o cliente...</option>
             {customers.map((c) => (
               <option key={c.id} value={c.id}>
@@ -157,18 +113,12 @@ export default function OSForm({
         </div>
 
         <div>
-          <label className="text-xs text-gray-400 block mb-1">
-            {osType === "service" ? "Problema relatado *" : "Título da OS *"}
-          </label>
+          <label className="text-xs text-gray-400 block mb-1">Problema / Título *</label>
           <input
             type="text"
             name="title"
             required
-            placeholder={
-              osType === "service"
-                ? "Ex: Notebook não liga, tela quebrada..."
-                : "Ex: Entrega de materiais para cliente"
-            }
+            placeholder="Ex: Notebook não liga, tela quebrada..."
             className={inputCls}
           />
         </div>
@@ -184,43 +134,28 @@ export default function OSForm({
         </div>
       </div>
 
-      {/* Equipment (service only) */}
-      {osType === "service" ? (
-        <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl p-5 space-y-4">
-          <div className="text-sm font-semibold text-gray-300">Equipamento</div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs text-gray-400 block mb-1">Equipamento</label>
-              <input type="text" name="equipment" placeholder="Ex: Notebook Dell Inspiron 15" className={inputCls} />
-            </div>
-            <div>
-              <label className="text-xs text-gray-400 block mb-1">Número de série</label>
-              <input type="text" name="serial_number" placeholder="SN / IMEI" className={inputCls} />
-            </div>
-            <div>
-              <label className="text-xs text-gray-400 block mb-1">Previsão de conclusão</label>
-              <input type="date" name="estimated_at" className={inputCls} />
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl p-5">
-          <div className="text-sm font-semibold text-gray-300 mb-3">Dados da Entrega</div>
+      {/* Equipamento */}
+      <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl p-5 space-y-4">
+        <div className="text-sm font-semibold text-gray-300">Equipamento</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs text-gray-400 block mb-1">Data de entrega prevista</label>
+            <label className="text-xs text-gray-400 block mb-1">Equipamento</label>
+            <input type="text" name="equipment" placeholder="Ex: Notebook Dell Inspiron 15" className={inputCls} />
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Número de série</label>
+            <input type="text" name="serial_number" placeholder="SN / IMEI" className={inputCls} />
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Previsão de conclusão</label>
             <input type="date" name="estimated_at" className={inputCls} />
           </div>
-          {/* Hidden fields not used for delivery */}
-          <input type="hidden" name="equipment" value="" />
-          <input type="hidden" name="serial_number" value="" />
         </div>
-      )}
+      </div>
 
-      {/* Images */}
+      {/* Imagens */}
       <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl p-5 space-y-3">
-        <div className="text-sm font-semibold text-gray-300">
-          {osType === "service" ? "Imagens do Equipamento" : "Imagens"}
-        </div>
+        <div className="text-sm font-semibold text-gray-300">Imagens do Equipamento</div>
 
         {imageUrls.length > 0 && (
           <div className="grid grid-cols-3 gap-2">
@@ -271,7 +206,7 @@ export default function OSForm({
         <input type="hidden" name="images_count" value={imageUrls.length} />
       </div>
 
-      {/* Items — Serviços/Produtos */}
+      {/* Serviços / Produtos */}
       <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl p-5 space-y-3">
         <div className="flex items-center justify-between">
           <div className="text-sm font-semibold text-gray-300">Serviços / Produtos</div>
@@ -280,7 +215,6 @@ export default function OSForm({
 
         {items.map((item, idx) => (
           <div key={idx} className="flex flex-col gap-2 pt-3 border-t border-brand-gray-mid first:border-0 first:pt-0">
-            {/* Searchable product picker */}
             <div className="relative flex gap-2">
               <div className="flex-1 relative">
                 <input
@@ -311,13 +245,11 @@ export default function OSForm({
                           >
                             <span className="text-sm text-white truncate">{p.name}</span>
                             <div className="flex items-center gap-2 shrink-0">
-                              <span
-                                className={`text-xs px-1.5 py-0.5 rounded font-medium ${
-                                  p.product_type === "service"
-                                    ? "bg-blue-900/60 text-blue-300"
-                                    : "bg-green-900/60 text-green-300"
-                                }`}
-                              >
+                              <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                                p.product_type === "service"
+                                  ? "bg-blue-900/60 text-blue-300"
+                                  : "bg-green-900/60 text-green-300"
+                              }`}>
                                 {p.product_type === "service" ? "Serviço" : "Produto"}
                               </span>
                               <span className="text-gray-400 text-xs tabular-nums">
@@ -401,17 +333,13 @@ export default function OSForm({
         </button>
       </div>
 
-      {/* Labor + totals */}
+      {/* Mão de obra + Descontos */}
       <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl p-5 space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          {osType === "service" ? (
-            <div>
-              <label className="text-xs text-gray-400 block mb-1">Mão de obra (R$)</label>
-              <input type="number" name="labor_cost" defaultValue="0" min="0" step="0.01" className={inputCls} />
-            </div>
-          ) : (
-            <input type="hidden" name="labor_cost" value="0" />
-          )}
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Mão de obra (R$)</label>
+            <input type="number" name="labor_cost" defaultValue="0" min="0" step="0.01" className={inputCls} />
+          </div>
           <div>
             <label className="text-xs text-gray-400 block mb-1">Desconto (R$)</label>
             <input type="number" name="discount" defaultValue="0" min="0" step="0.01" className={inputCls} />

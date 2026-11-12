@@ -4,12 +4,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { requireAuth } from "@/lib/auth";
 import { getServiceOrderDetail } from "@/lib/queries";
 import { formatCurrency, formatDate, formatOSNumber, formatPhone } from "@/lib/utils";
-import { OS_STATUS_LABELS, OS_STATUS_COLORS, type ServiceOrder, type OSType } from "@/types";
-
-const OS_TYPE_LABELS: Record<OSType, string> = {
-  service: "Serviço Técnico",
-  delivery: "Entrega de Produto",
-};
+import { OS_STATUS_LABELS, OS_STATUS_COLORS, type ServiceOrder } from "@/types";
 import OSStatusForm from "./OSStatusForm";
 import OSImageUpload from "./OSImageUpload";
 
@@ -40,11 +35,6 @@ export default async function OSDetailPage({ params }: { params: Promise<{ id: s
               <span className={`text-xs px-2.5 py-1 rounded-full ${OS_STATUS_COLORS[os.status]}`}>
                 {OS_STATUS_LABELS[os.status]}
               </span>
-              {os.os_type === "delivery" && (
-                <span className="text-xs px-2.5 py-1 rounded-full bg-brand-yellow/15 text-brand-yellow border border-brand-yellow/30">
-                  📦 Entrega
-                </span>
-              )}
             </div>
             <p className="text-gray-400 text-sm">{os.title}</p>
           </div>

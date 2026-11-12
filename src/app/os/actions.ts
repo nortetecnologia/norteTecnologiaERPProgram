@@ -29,15 +29,11 @@ export async function createServiceOrder(_prevState: unknown, formData: FormData
     if (url) images.push(url);
   }
 
-  const osTypeRaw = (formData.get("os_type") as string) || "service";
-  const osType = osTypeRaw === "delivery" ? "delivery" : "service";
-
   const osFields = {
     customer_id: customerId,
     title,
     description: (formData.get("description") as string)?.trim() || null,
     status: "awaiting" as OSStatus,
-    os_type: osType,
     equipment: (formData.get("equipment") as string)?.trim() || null,
     serial_number: (formData.get("serial_number") as string)?.trim() || null,
     labor_cost: parseFloat(formData.get("labor_cost") as string) || 0,
