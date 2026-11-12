@@ -34,6 +34,22 @@ jobs:
           CLOUDINARY_API_SECRET=${{ secrets.CLOUDINARY_API_SECRET }}
           "@ | Out-File -FilePath ".env.local" -Encoding utf8NoBOM
 
+      - name: Configurar certificado de assinatura
+        shell: pwsh
+        env:
+          CERT_B64: ${{ secrets.CODE_SIGNING_CERT_BASE64 }}
+          CERT_PWD: ${{ secrets.CODE_SIGNING_CERT_PASSWORD }}
+        run: |
+          if ($env:CERT_B64) {
+            $bytes = [Convert]::FromBase64String($env:CERT_B64)
+            [IO.File]::WriteAllBytes("code-signing.pfx", $bytes)
+            "CSC_LINK=code-signing.pfx"           | Out-File -Append -Encoding utf8NoBOM $env:GITHUB_ENV
+            "CSC_KEY_PASSWORD=$env:CERT_PWD"      | Out-File -Append -Encoding utf8NoBOM $env:GITHUB_ENV
+            Write-Host "Certificado de assinatura configurado."
+          } else {
+            Write-Host "Secret CODE_SIGNING_CERT_BASE64 nao configurado - build sem assinatura."
+          }
+
       - name: Build
         run: npm run electron:build
 

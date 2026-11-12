@@ -32,6 +32,10 @@ next-env.d.ts
 .DS_Store
 Thumbs.db
 
+# Certificados de assinatura (nunca commitar a chave privada)
+*.pfx
+code-signing.pfx
+
 # Editor
 .vscode/
 .idea/
