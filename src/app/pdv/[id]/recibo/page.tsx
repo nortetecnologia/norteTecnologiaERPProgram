@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { getSaleReceipt } from "@/lib/queries";
 import type { PDVSale } from "@/types";
 
 export default async function ReciboPage({
@@ -9,13 +9,8 @@ export default async function ReciboPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = createAdminClient();
 
-  const { data: sale } = await supabase
-    .from("erp_pdv_sales")
-    .select("*, erp_customers(name, phone), erp_pdv_sale_items(*), erp_pdv_sale_payments(*)")
-    .eq("id", id)
-    .single<PDVSale>();
+  const sale = (await getSaleReceipt(id)) as PDVSale | null;
 
   if (!sale) notFound();
 

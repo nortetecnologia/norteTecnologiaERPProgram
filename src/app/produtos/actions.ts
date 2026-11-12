@@ -1,6 +1,7 @@
 "use server";
 
-import { markLocalDataStale } from "@/lib/offline";
+import { markLocalDataStale, isOfflineMode } from "@/lib/offline";
+import { offlineInsert, offlineUpdate, offlineDelete } from "@/lib/offline-queue";
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
@@ -22,7 +23,7 @@ function slugify(text: string): string {
 }
 
 export async function saveProduto(prevState: unknown, formData: FormData) {
-  const supabase = await getAuth();
+  await requireAuth();
 
   const id = formData.get("id") as string | null;
   const name = (formData.get("name") as string)?.trim();
@@ -40,6 +41,35 @@ export async function saveProduto(prevState: unknown, formData: FormData) {
     is_active: formData.get("is_active") === "true",
   };
 
+  if (isOfflineMode()) {
+    let productId = id;
+    if (id) {
+      offlineUpdate("products", id, payload);
+    } else {
+      productId = offlineInsert("products", {
+        ...payload,
+        product_type: "product",
+        slug: slugify(name) + "-" + Date.now(),
+      });
+    }
+    // Offline: adiciona imagem nova (edição de imagem existente é resolvida no próximo sync)
+    if (imageUrl && productId) {
+      offlineInsert("product_images", {
+        product_id: productId,
+        url: imageUrl,
+        alt: name,
+        is_primary: true,
+        position: 0,
+      });
+    }
+    revalidatePath("/produtos");
+    revalidatePath("/pdv");
+    revalidateTag("products");
+    markLocalDataStale();
+    redirect("/produtos");
+  }
+
+  const supabase = createAdminClient();
   let productId = id;
 
   if (id) {
@@ -76,9 +106,16 @@ export async function saveProduto(prevState: unknown, formData: FormData) {
 }
 
 export async function deleteProduto(id: string) {
-  const supabase = await getAuth();
-  const { error } = await supabase.from("products").delete().eq("id", id);
-  if (error) return { error: error.message };
+  await requireAuth();
+
+  if (isOfflineMode()) {
+    offlineDelete("products", id);
+  } else {
+    const supabase = createAdminClient();
+    const { error } = await supabase.from("products").delete().eq("id", id);
+    if (error) return { error: error.message };
+  }
+
   revalidatePath("/produtos");
   revalidateTag("products");
   markLocalDataStale();

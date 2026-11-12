@@ -44,7 +44,7 @@ export interface ElectronAPI {
   dumpRestore: (filePath: string) => Promise<RestoreResult>;
   offlineStatus: () => Promise<boolean>;
   offlineGo: () => Promise<{ success: boolean; tables?: string[]; totalRows?: number; error?: string }>;
-  offlineBack: () => Promise<{ success: boolean }>;
+  offlineBack: () => Promise<{ success: boolean; synced?: boolean; syncError?: string }>;
 }
 
 declare global {

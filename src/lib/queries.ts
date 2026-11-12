@@ -111,6 +111,52 @@ export const getCachedServiceOrders = (status?: string) => {
   )();
 };
 
+export const getSaleReceipt = async (id: string) => {
+  if (shouldUseLocalData()) {
+    const d = readOfflineData();
+    const sale = ((d["erp_pdv_sales"] ?? []) as any[]).find((s) => s.id === id);
+    if (!sale) return null;
+    const customer = ((d["erp_customers"] ?? []) as any[]).find((c) => c.id === sale.customer_id) ?? null;
+    return {
+      ...sale,
+      erp_customers: customer ? { name: customer.name, phone: customer.phone } : null,
+      erp_pdv_sale_items: ((d["erp_pdv_sale_items"] ?? []) as any[]).filter((i) => i.sale_id === id),
+      erp_pdv_sale_payments: ((d["erp_pdv_sale_payments"] ?? []) as any[]).filter((p) => p.sale_id === id),
+    };
+  }
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("erp_pdv_sales")
+    .select("*, erp_customers(name, phone), erp_pdv_sale_items(*), erp_pdv_sale_payments(*)")
+    .eq("id", id)
+    .single();
+  return data;
+};
+
+export const getServiceOrderDetail = async (id: string) => {
+  if (shouldUseLocalData()) {
+    const d = readOfflineData();
+    const os = ((d["erp_service_orders"] ?? []) as any[]).find((o) => o.id === id);
+    if (!os) return null;
+    const customer = ((d["erp_customers"] ?? []) as any[]).find((c) => c.id === os.customer_id) ?? null;
+    const products = (d["products"] ?? []) as any[];
+    const items = ((d["erp_service_order_items"] ?? []) as any[])
+      .filter((i) => i.service_order_id === id)
+      .map((i) => {
+        const prod = products.find((p) => p.id === i.product_id);
+        return { ...i, products: prod ? { name: prod.name, sku: prod.sku } : null };
+      });
+    return { ...os, erp_customers: customer, erp_service_order_items: items };
+  }
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("erp_service_orders")
+    .select("*, erp_customers(*), erp_service_order_items(*, products(name, sku))")
+    .eq("id", id)
+    .single();
+  return data;
+};
+
 export const getCachedStock = () => {
   if (shouldUseLocalData()) {
     const d = readOfflineData();

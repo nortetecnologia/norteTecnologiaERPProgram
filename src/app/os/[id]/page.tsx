@@ -1,8 +1,8 @@
-import { redirect, notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import AppLayout from "@/components/layout/AppLayout";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { requireAuth } from "@/lib/auth";
+import { getServiceOrderDetail } from "@/lib/queries";
 import { formatCurrency, formatDate, formatOSNumber, formatPhone } from "@/lib/utils";
 import { OS_STATUS_LABELS, OS_STATUS_COLORS, type ServiceOrder } from "@/types";
 import OSStatusForm from "./OSStatusForm";
@@ -11,16 +11,9 @@ import OSImageUpload from "./OSImageUpload";
 export default async function OSDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const anonClient = await createClient();
-  const { data: { user } } = await anonClient.auth.getUser();
-  if (!user) redirect("/login");
+  await requireAuth();
 
-  const supabase = createAdminClient();
-  const { data: os } = await supabase
-    .from("erp_service_orders")
-    .select("*, erp_customers(*), erp_service_order_items(*, products(name, sku))")
-    .eq("id", id)
-    .single<ServiceOrder>();
+  const os = (await getServiceOrderDetail(id)) as ServiceOrder | null;
 
   if (!os) notFound();
 

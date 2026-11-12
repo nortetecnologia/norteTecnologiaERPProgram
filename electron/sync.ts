@@ -91,9 +91,17 @@ export class SyncEngine {
     this.syncInterval = setInterval(() => this.syncNow(), 120_000);
   }
 
+  private isOfflineFlagSet(): boolean {
+    try {
+      return fs.existsSync(path.join(this.userDataPath, ".offline"));
+    } catch { return false; }
+  }
+
   async syncNow(): Promise<{ success: boolean; error?: string }> {
     if (this.syncing) return { success: false, error: "Sync já em andamento." };
     if (!this.enabled) return { success: false, error: "Sync desligado." };
+    // Enquanto o modo offline está ativo, o banco local é a fonte da verdade — não sincroniza
+    if (this.isOfflineFlagSet()) return { success: false, error: "Modo offline ativo." };
 
     const online = await this.isOnline();
     if (!online) return { success: false, error: "Sem conexão com Supabase." };
@@ -102,8 +110,11 @@ export class SyncEngine {
     this.broadcast({ ...this.getStatus(), syncing: true, online: true });
 
     try {
-      await this.pullAllTables();
+      // Drena primeiro (empurra escritas locais para o Supabase), depois puxa o estado atualizado.
+      // A ordem evita que o pull sobrescreva mudanças locais ainda não enviadas.
+      await this.drainPendingOps();
       await this.drainQueue();
+      await this.pullAllTables();
       this.lastSync = new Date().toISOString();
       return { success: true };
     } catch (err: unknown) {
@@ -112,6 +123,56 @@ export class SyncEngine {
       this.syncing = false;
       this.broadcast({ ...this.getStatus(), syncing: false, online: true });
     }
+  }
+
+  // Drena pending_ops.json — a fila que as server actions do Next.js escrevem no modo offline
+  private async drainPendingOps() {
+    const file = path.join(this.userDataPath, "pending_ops.json");
+    let ops: Array<Record<string, any>> = [];
+    try {
+      ops = JSON.parse(fs.readFileSync(file, "utf-8")).ops ?? [];
+    } catch { return; }
+    if (ops.length === 0) return;
+
+    const processedIds = new Set<string>();
+    const attemptsMap = new Map<string, number>();
+
+    for (const op of ops) {
+      try {
+        if (op.operation === "INSERT") {
+          const { error } = await (this.supabase as any).from(op.table).insert(op.payload);
+          if (error) throw error;
+        } else if (op.operation === "UPDATE") {
+          const { error } = await (this.supabase as any).from(op.table).update(op.payload).eq("id", op.record_id);
+          if (error) throw error;
+        } else if (op.operation === "DELETE") {
+          const { error } = await (this.supabase as any).from(op.table).delete().eq("id", op.record_id);
+          if (error) throw error;
+        }
+        processedIds.add(op.id);
+      } catch (e) {
+        const attempts = (op.attempts ?? 0) + 1;
+        attemptsMap.set(op.id, attempts);
+        if (attempts > 5) {
+          console.warn(`[sync] op ${op.table}/${op.operation} descartada após 5 tentativas:`, e);
+          processedIds.add(op.id);
+        } else {
+          // Para no primeiro erro para preservar ordem/dependências (FK); tenta no próximo ciclo
+          break;
+        }
+      }
+    }
+
+    // Re-lê a fila (pode ter novos appends concorrentes) e remove os processados
+    try {
+      const current: Array<Record<string, any>> = JSON.parse(fs.readFileSync(file, "utf-8")).ops ?? [];
+      const remaining = current
+        .filter((o) => !processedIds.has(o.id))
+        .map((o) => (attemptsMap.has(o.id) ? { ...o, attempts: attemptsMap.get(o.id) } : o));
+      const tmp = file + ".tmp";
+      fs.writeFileSync(tmp, JSON.stringify({ ops: remaining }, null, 2), "utf-8");
+      fs.renameSync(tmp, file);
+    } catch { /* ignora */ }
   }
 
   // Sincroniza todas as tabelas ERP para o arquivo local offline_data.json

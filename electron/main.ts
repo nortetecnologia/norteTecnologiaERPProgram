@@ -168,9 +168,11 @@ app.whenReady().then(async () => {
     }
   });
 
-  ipcMain.handle("offline:back", () => {
+  ipcMain.handle("offline:back", async () => {
     if (fs.existsSync(offlineFlag)) fs.unlinkSync(offlineFlag);
-    return { success: true };
+    // Dispara sync imediatamente: drena as escritas feitas offline e puxa o estado atualizado
+    const result = await syncEngine?.syncNow();
+    return { success: true, synced: result?.success ?? false, syncError: result?.error };
   });
 });
 
