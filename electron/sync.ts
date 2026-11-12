@@ -36,7 +36,9 @@ export class SyncEngine {
   private syncing = false;
   private lastSync: string | null = null;
   private syncInterval: ReturnType<typeof setInterval> | null = null;
+  private onlineInterval: ReturnType<typeof setInterval> | null = null;
   private userDataPath: string;
+  private lastOnline = false;
 
   constructor(db: LocalDB, userDataPath: string) {
     this.db = db;
@@ -47,6 +49,16 @@ export class SyncEngine {
     );
     this.enabled = db.getConfig("sync_enabled") !== "false";
     if (this.enabled) this.startInterval();
+    // Checa a conexão na abertura e a cada 20s, para o indicador refletir o estado real
+    this.refreshOnline();
+    this.onlineInterval = setInterval(() => this.refreshOnline(), 20_000);
+  }
+
+  // Atualiza o estado de conexão e avisa a interface
+  private async refreshOnline() {
+    const before = this.lastOnline;
+    await this.isOnline();
+    if (before !== this.lastOnline) this.broadcast(this.getStatus());
   }
 
   private broadcast(status: SyncStatus) {
@@ -58,14 +70,18 @@ export class SyncEngine {
   private async isOnline(): Promise<boolean> {
     try {
       const { error } = await this.supabase.from("store_settings").select("id").limit(1);
-      return !error;
-    } catch { return false; }
+      this.lastOnline = !error;
+      return this.lastOnline;
+    } catch {
+      this.lastOnline = false;
+      return false;
+    }
   }
 
   getStatus(): SyncStatus {
     return {
       enabled: this.enabled,
-      online: false,
+      online: this.lastOnline,
       lastSync: this.lastSync,
       pendingCount: this.db.getPendingCount(),
       syncing: this.syncing,
