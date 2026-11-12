@@ -138,12 +138,16 @@ export class SyncEngine {
       }
     }
 
+    // Escrita atômica: escreve em .tmp e renomeia, evitando que uma leitura
+    // concorrente pegue um JSON parcial durante o sync
     const outFile = path.join(this.userDataPath, "offline_data.json");
+    const tmpFile = outFile + ".tmp";
     fs.writeFileSync(
-      outFile,
+      tmpFile,
       JSON.stringify({ exportedAt: new Date().toISOString(), tables }, null, 2),
       "utf-8"
     );
+    fs.renameSync(tmpFile, outFile);
 
     // Mantém cache de produtos no LocalDB também (compatibilidade)
     const products = (tables["products"] ?? []) as Array<Record<string, unknown>>;

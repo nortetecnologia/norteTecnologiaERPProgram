@@ -182,7 +182,9 @@ export async function dumpForOffline(userDataPath: string): Promise<DumpResult> 
   }
 
   const outFile = path.join(userDataPath, "offline_data.json");
-  fs.writeFileSync(outFile, JSON.stringify({ exportedAt: new Date().toISOString(), tables }, null, 2), "utf-8");
+  const tmpFile = outFile + ".tmp";
+  fs.writeFileSync(tmpFile, JSON.stringify({ exportedAt: new Date().toISOString(), tables }, null, 2), "utf-8");
+  fs.renameSync(tmpFile, outFile);
 
   return { success: true, path: outFile, tables: exported, totalRows };
 }
