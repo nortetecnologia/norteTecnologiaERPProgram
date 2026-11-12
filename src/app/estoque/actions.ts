@@ -1,4 +1,5 @@
 "use server";
+
 import { markLocalDataStale } from "@/lib/offline";
 
 import { revalidatePath, revalidateTag } from "next/cache";
@@ -16,7 +17,7 @@ export async function adjustStock(prevState: unknown, formData: FormData) {
 
   if (!productId) return { error: "Selecione um produto." };
   if (quantity <= 0) return { error: "Quantidade deve ser maior que zero." };
-  if (!type) return { error: "Tipo de movimentaÃ§Ã£o invÃ¡lido." };
+  if (!type) return { error: "Tipo de movimentação inválido." };
 
   const { data: product, error: fetchErr } = await supabase
     .from("products")
@@ -24,7 +25,7 @@ export async function adjustStock(prevState: unknown, formData: FormData) {
     .eq("id", productId)
     .single();
 
-  if (fetchErr || !product) return { error: "Produto nÃ£o encontrado." };
+  if (fetchErr || !product) return { error: "Produto não encontrado." };
 
   let newStock = product.stock ?? 0;
   if (type === "in") newStock += quantity;
@@ -42,13 +43,12 @@ export async function adjustStock(prevState: unknown, formData: FormData) {
     product_id: productId,
     type,
     quantity,
-    reason: reason || (type === "in" ? "Entrada manual" : type === "out" ? "SaÃ­da manual" : "Ajuste"),
+    reason: reason || (type === "in" ? "Entrada manual" : type === "out" ? "Saída manual" : "Ajuste"),
   });
 
   revalidatePath("/estoque");
   revalidatePath("/produtos");
   revalidateTag("products");
-  markLocalDataStale();
   revalidateTag("stock-movements");
   markLocalDataStale();
   return { success: true, productName: product.name, newStock };

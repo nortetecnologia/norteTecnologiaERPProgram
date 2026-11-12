@@ -1,4 +1,5 @@
 "use server";
+
 import { markLocalDataStale } from "@/lib/offline";
 
 import { revalidatePath, revalidateTag } from "next/cache";
@@ -13,7 +14,7 @@ async function getAuth() {
 export async function createCustomer(formData: FormData) {
   const supabase = await getAuth();
   const name = (formData.get("name") as string)?.trim();
-  if (!name) return { error: "Nome Ã© obrigatÃ³rio." };
+  if (!name) return { error: "Nome é obrigatório." };
 
   const { error } = await supabase.from("erp_customers").insert({
     name,
@@ -35,7 +36,7 @@ export async function createCustomer(formData: FormData) {
 export async function updateCustomer(id: string, formData: FormData) {
   const supabase = await getAuth();
   const name = (formData.get("name") as string)?.trim();
-  if (!name) return { error: "Nome Ã© obrigatÃ³rio." };
+  if (!name) return { error: "Nome é obrigatório." };
 
   const { error } = await supabase
     .from("erp_customers")

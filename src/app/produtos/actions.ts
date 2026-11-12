@@ -1,4 +1,5 @@
 "use server";
+
 import { markLocalDataStale } from "@/lib/offline";
 
 import { revalidatePath, revalidateTag } from "next/cache";
@@ -15,7 +16,7 @@ function slugify(text: string): string {
   return text
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[Ì€-Í¯]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
@@ -25,7 +26,7 @@ export async function saveProduto(prevState: unknown, formData: FormData) {
 
   const id = formData.get("id") as string | null;
   const name = (formData.get("name") as string)?.trim();
-  if (!name) return { error: "Nome Ã© obrigatÃ³rio." };
+  if (!name) return { error: "Nome é obrigatório." };
 
   const imageUrl = (formData.get("primary_image_url") as string)?.trim() ?? null;
 
