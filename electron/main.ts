@@ -71,6 +71,19 @@ async function createWindow() {
 
 app.setAppUserModelId("com.nortetecnologia.erp");
 
+// Garante apenas uma instância rodando; foca a janela existente se abrir de novo
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  app.quit();
+}
+
+app.on("second-instance", () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  }
+});
+
 app.whenReady().then(async () => {
   // Remove menu nativo (File, Edit, View, Window, Help)
   Menu.setApplicationMenu(null);
