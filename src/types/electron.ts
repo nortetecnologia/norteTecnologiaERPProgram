@@ -32,6 +32,8 @@ export interface ElectronAPI {
   getSyncStatus: () => Promise<SyncStatus>;
   toggleSync: (enabled: boolean) => Promise<void>;
   syncNow: () => Promise<{ success: boolean; error?: string }>;
+  syncPull: () => Promise<{ success: boolean; error?: string }>;
+  syncPush: () => Promise<{ success: boolean; error?: string; remaining?: number }>;
   getPendingCount: () => Promise<number>;
   onSyncUpdate: (cb: (status: SyncStatus) => void) => () => void;
   getBackupConfig: () => Promise<BackupConfigData>;

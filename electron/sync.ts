@@ -126,6 +126,46 @@ export class SyncEngine {
     }
   }
 
+  // Baixar dados do Supabase (pull manual — botão dedicado). Ignora o flag offline
+  // porque é uma ação explícita do usuário; só precisa de internet.
+  async pullNow(): Promise<{ success: boolean; error?: string }> {
+    if (this.syncing) return { success: false, error: "Sincronização já em andamento." };
+    const online = await this.isOnline();
+    if (!online) return { success: false, error: "Sem conexão com o Supabase." };
+    this.syncing = true;
+    this.broadcast({ ...this.getStatus(), syncing: true, online: true });
+    try {
+      await this.pullAllTables();
+      this.lastSync = new Date().toISOString();
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: String(err) };
+    } finally {
+      this.syncing = false;
+      this.broadcast({ ...this.getStatus(), syncing: false, online: true });
+    }
+  }
+
+  // Enviar mudanças locais para o Supabase (push manual — botão dedicado).
+  async pushNow(): Promise<{ success: boolean; error?: string; remaining?: number }> {
+    if (this.syncing) return { success: false, error: "Sincronização já em andamento." };
+    const online = await this.isOnline();
+    if (!online) return { success: false, error: "Sem conexão com o Supabase." };
+    this.syncing = true;
+    this.broadcast({ ...this.getStatus(), syncing: true, online: true });
+    try {
+      await this.drainPendingOps();
+      await this.drainQueue();
+      this.lastSync = new Date().toISOString();
+      return { success: true, remaining: this.db.getPendingCount() };
+    } catch (err) {
+      return { success: false, error: String(err) };
+    } finally {
+      this.syncing = false;
+      this.broadcast({ ...this.getStatus(), syncing: false, online: true });
+    }
+  }
+
   // Drena pending_ops.json — a fila que as server actions do Next.js escrevem no modo offline
   private async drainPendingOps() {
     const file = path.join(this.userDataPath, "pending_ops.json");

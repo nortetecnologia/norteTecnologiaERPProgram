@@ -41,6 +41,26 @@ export default function DesktopBar() {
     refresh();
   };
 
+  const handlePull = async () => {
+    setSyncing(true);
+    const r = await window.electronAPI?.syncPull();
+    setSyncing(false);
+    refresh();
+    if (r && !r.success) alert(`Erro ao baixar do Supabase: ${r.error ?? "desconhecido"}`);
+  };
+
+  const handlePush = async () => {
+    setSyncing(true);
+    const r = await window.electronAPI?.syncPush();
+    setSyncing(false);
+    refresh();
+    if (r && !r.success) {
+      alert(`Erro ao enviar mudanças: ${r.error ?? "desconhecido"}`);
+    } else if (r && r.remaining && r.remaining > 0) {
+      alert(`${r.remaining} mudança(s) ainda pendente(s) — tente novamente.`);
+    }
+  };
+
   const handleGoOffline = async () => {
     setOfflineLoading(true);
     const result = await window.electronAPI?.offlineGo();
@@ -101,27 +121,37 @@ export default function DesktopBar() {
           Sync {status.enabled ? "ligado" : "desligado"}
         </button>
 
-        {/* Botão sincronizar agora */}
-        {status.enabled && (
-          <button
-            onClick={handleSyncNow}
-            disabled={syncing || status.syncing}
-            className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 disabled:opacity-50 transition-colors"
-          >
-            <svg
-              className={`w-3 h-3 ${syncing || status.syncing ? "animate-spin" : ""}`}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <polyline points="23 4 23 10 17 10" />
-              <polyline points="1 20 1 14 7 14" />
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-            </svg>
-            {syncing || status.syncing ? "Sincronizando..." : "Sincronizar agora"}
-          </button>
-        )}
+        {/* Baixar do Supabase (pull) */}
+        <button
+          onClick={handlePull}
+          disabled={syncing || status.syncing || offline}
+          title="Baixa os dados mais recentes do Supabase para o banco local"
+          className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 disabled:opacity-50 transition-colors"
+        >
+          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          {syncing || status.syncing ? "Sincronizando..." : "Baixar do Supabase"}
+        </button>
+
+        {/* Enviar mudanças (push) */}
+        <button
+          onClick={handlePush}
+          disabled={syncing || status.syncing}
+          title="Envia as mudanças feitas localmente para o Supabase"
+          className={`flex items-center gap-1.5 px-2 py-0.5 rounded disabled:opacity-50 transition-colors ${
+            status.pendingCount > 0 ? "bg-brand-yellow/20 text-brand-yellow hover:bg-brand-yellow/30" : "bg-white/10 hover:bg-white/20"
+          }`}
+        >
+          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          Enviar mudanças{status.pendingCount > 0 ? ` (${status.pendingCount})` : ""}
+        </button>
 
         {/* Pendentes */}
         {status.pendingCount > 0 && (

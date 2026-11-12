@@ -109,6 +109,8 @@ app.whenReady().then(async () => {
   ipcMain.handle("sync:getStatus", () => syncEngine?.getStatus());
   ipcMain.handle("sync:toggle", (_e, enabled: boolean) => syncEngine?.setEnabled(enabled));
   ipcMain.handle("sync:now", () => syncEngine?.syncNow());
+  ipcMain.handle("sync:pull", () => syncEngine?.pullNow());
+  ipcMain.handle("sync:push", () => syncEngine?.pushNow());
   ipcMain.handle("sync:getPendingCount", () => syncEngine?.getPendingCount());
 
   // Backup IPC handlers

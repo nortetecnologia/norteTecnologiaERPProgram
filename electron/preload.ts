@@ -5,6 +5,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getSyncStatus: () => ipcRenderer.invoke("sync:getStatus"),
   toggleSync: (enabled: boolean) => ipcRenderer.invoke("sync:toggle", enabled),
   syncNow: () => ipcRenderer.invoke("sync:now"),
+  syncPull: () => ipcRenderer.invoke("sync:pull"),
+  syncPush: () => ipcRenderer.invoke("sync:push"),
   getPendingCount: () => ipcRenderer.invoke("sync:getPendingCount"),
   onSyncUpdate: (cb: (status: unknown) => void) => {
     ipcRenderer.on("sync:update", (_e, s) => cb(s));
