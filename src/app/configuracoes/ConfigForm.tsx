@@ -142,6 +142,17 @@ export default function ConfigForm({
             />
           </div>
         </div>
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">CNPJ</label>
+          <input
+            type="text"
+            name="cnpj"
+            defaultValue={settings?.cnpj ?? ""}
+            placeholder="00.000.000/0000-00"
+            className="w-full bg-brand-gray-mid border border-brand-gray-light rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-yellow"
+          />
+          <p className="text-xs text-gray-600 mt-0.5">Exibido na OS e documentos impressos.</p>
+        </div>
       </div>
 
       <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl p-5 space-y-4">

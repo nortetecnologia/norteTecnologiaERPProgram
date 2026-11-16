@@ -12,6 +12,7 @@ export async function saveSettings(prevState: unknown, formData: FormData) {
   // --- store_settings ---
   const storePayload = {
     store_name: (formData.get("store_name") as string)?.trim() || "Norte Tecnologia",
+    cnpj: (formData.get("cnpj") as string)?.trim() || null,
     phone_number: (formData.get("phone_number") as string)?.trim() || null,
     whatsapp_number: (formData.get("whatsapp_number") as string)?.trim() || null,
     email: (formData.get("email") as string)?.trim() || null,

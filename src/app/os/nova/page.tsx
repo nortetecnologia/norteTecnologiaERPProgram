@@ -12,7 +12,7 @@ export default async function NovaOSPage() {
   const supabase = createAdminClient();
   const [{ data: customersRaw }, { data: productsRaw }, { data: employeesRaw }] = await Promise.all([
     supabase.from("erp_customers").select("id, name, phone").order("name"),
-    supabase.from("products").select("id, name, price, sku, product_type").eq("is_active", true).order("name"),
+    supabase.from("products").select("id, name, price, sku, barcode, product_type").eq("is_active", true).order("name"),
     supabase.from("erp_employees").select("id, name").eq("is_active", true).order("name"),
   ]);
 

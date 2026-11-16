@@ -177,7 +177,7 @@ export const getCachedStock = () => {
     async () => {
       const supabase = createAdminClient();
       const [allProductsRes, lowStockRes, noImageRaw, noSkuRes, recentMovRes] = await Promise.all([
-        supabase.from("products").select("id, name, sku, stock").eq("is_active", true).eq("product_type", "product").order("name").limit(500),
+        supabase.from("products").select("id, name, sku, barcode, stock").eq("is_active", true).eq("product_type", "product").order("name").limit(500),
         supabase.from("products").select("id, name, sku, stock, price, categories(name)").eq("is_active", true).eq("product_type", "product").lt("stock", 5).order("stock").limit(50),
         supabase.from("products").select("id, name, sku, stock, is_active, product_images(id)").eq("product_type", "product").limit(200),
         supabase.from("products").select("id, name, stock, is_active").eq("product_type", "product").is("sku", null).limit(50),

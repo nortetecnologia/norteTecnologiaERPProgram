@@ -76,7 +76,6 @@ export function ProdutosClient({ products, categories }: Props) {
   const [isActive, setIsActive] = useState(true);
   const [formProductType, setFormProductType] = useState<"product" | "service">("product");
   const [formBarcode, setFormBarcode] = useState("");
-  const [formInternalCode, setFormInternalCode] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [uploadState, setUploadState] = useState<"idle" | "uploading" | "error">("idle");
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -91,7 +90,6 @@ export function ProdutosClient({ products, categories }: Props) {
     setIsActive(true);
     setFormProductType("product");
     setFormBarcode("");
-    setFormInternalCode("");
     setFormError(null);
     setImageUrl("");
     setUploadState("idle");
@@ -106,7 +104,6 @@ export function ProdutosClient({ products, categories }: Props) {
     setIsActive(product.is_active);
     setFormProductType(product.product_type ?? "product");
     setFormBarcode(product.barcode ?? "");
-    setFormInternalCode(product.internal_code ?? "");
     setFormError(null);
     setImageUrl(product.primary_image_url ?? "");
     setUploadState("idle");
@@ -175,7 +172,8 @@ export function ProdutosClient({ products, categories }: Props) {
     return (
       p.name.toLowerCase().includes(q) ||
       (p.brand?.toLowerCase().includes(q) ?? false) ||
-      (p.sku?.toLowerCase().includes(q) ?? false)
+      (p.sku?.toLowerCase().includes(q) ?? false) ||
+      (p.barcode?.includes(search) ?? false)
     );
   });
 
@@ -211,7 +209,7 @@ export function ProdutosClient({ products, categories }: Props) {
           </svg>
           <input
             type="search"
-            placeholder="Buscar por nome, marca ou SKU..."
+            placeholder="Buscar por nome, marca, SKU ou código de barras..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-brand-gray-dark border border-brand-gray-mid rounded-lg pl-9 pr-4 py-2.5 text-white text-sm placeholder-[#4b5563] focus:outline-none focus:border-brand-yellow focus:ring-1 focus:ring-brand-yellow transition-colors"
@@ -287,8 +285,8 @@ export function ProdutosClient({ products, categories }: Props) {
                         {product.subcategory_name ? ` › ${product.subcategory_name}` : ""}
                       </span>
                     )}
-                    {product.internal_code && (
-                      <span className="font-mono text-[#4b5563]">#{product.internal_code}</span>
+                    {product.barcode && (
+                      <span className="font-mono text-[#4b5563]">{product.barcode}</span>
                     )}
                   </div>
                 </div>
@@ -441,39 +439,28 @@ export function ProdutosClient({ products, categories }: Props) {
                 </div>
               </div>
 
-              {/* Código de Barras + Código Interno */}
-              <div className="grid gap-4 sm:grid-cols-2">
-                {formProductType === "product" && (
-                  <div>
-                    <label htmlFor="p-barcode" className={labelCls}>
-                      Código de Barras
-                      <span className="ml-1.5 text-[10px] font-normal text-[#4b5563]">leitor compatível</span>
-                    </label>
-                    <div className="relative">
-                      <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-[#4b5563]" aria-hidden="true">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M3 5v14M7 5v14M11 5v14M15 5v10M19 5v10M15 17h4v2h-4z"/>
-                        </svg>
-                      </span>
-                      <input id="p-barcode" name="barcode" type="text" inputMode="numeric" autoComplete="off"
-                        value={formBarcode}
-                        onChange={(e) => setFormBarcode(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
-                        placeholder="Ex: 7891234567890"
-                        className={`${inputCls} pl-8`} />
-                    </div>
+              {/* Código de Barras */}
+              {formProductType === "product" && (
+                <div>
+                  <label htmlFor="p-barcode" className={labelCls}>
+                    Código de Barras
+                    <span className="ml-1.5 text-[10px] font-normal text-[#4b5563]">leitor compatível</span>
+                  </label>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-[#4b5563]" aria-hidden="true">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 5v14M7 5v14M11 5v14M15 5v10M19 5v10M15 17h4v2h-4z"/>
+                      </svg>
+                    </span>
+                    <input id="p-barcode" name="barcode" type="text" inputMode="numeric" autoComplete="off"
+                      value={formBarcode}
+                      onChange={(e) => setFormBarcode(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
+                      placeholder="Ex: 7891234567890"
+                      className={`${inputCls} pl-8`} />
                   </div>
-                )}
-                <div className={formProductType === "service" ? "sm:col-span-2" : ""}>
-                  <label htmlFor="p-internal-code" className={labelCls}>Código Interno</label>
-                  <input id="p-internal-code" name="internal_code" type="text" autoComplete="off"
-                    value={formInternalCode}
-                    onChange={(e) => setFormInternalCode(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
-                    placeholder="Ex: SVC-001"
-                    className={inputCls} />
                 </div>
-              </div>
+              )}
 
               {/* Preço + Estoque */}
               <div className="grid gap-4 sm:grid-cols-2">

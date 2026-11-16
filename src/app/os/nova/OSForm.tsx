@@ -6,7 +6,7 @@ import { createServiceOrder } from "../actions";
 import { uploadOSImage } from "../uploadAction";
 
 interface Customer { id: string; name: string; phone?: string }
-interface Product { id: string; name: string; price: number; sku?: string; product_type: "product" | "service" }
+interface Product { id: string; name: string; price: number; sku?: string; barcode?: string; product_type: "product" | "service" }
 interface Employee { id: string; name: string }
 interface Item { description: string; quantity: number; unit_price: number; product_id?: string }
 
@@ -84,7 +84,8 @@ export default function OSForm({
     return products.filter(
       (p) =>
         p.name.toLowerCase().includes(search) ||
-        (p.sku ?? "").toLowerCase().includes(search)
+        (p.sku ?? "").toLowerCase().includes(search) ||
+        (p.barcode ?? "").includes(search)
     );
   }
 

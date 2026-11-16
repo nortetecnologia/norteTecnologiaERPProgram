@@ -91,6 +91,7 @@ export default function CustomerForm({ customer }: Props) {
 
   const [cpfCnpjError, setCpfCnpjError] = useState<string | null>(null);
   const [cnpjStatus, setCnpjStatus] = useState<CnpjStatus>("idle");
+  const [cnpjError, setCnpjError] = useState<string | null>(null);
   const lastLookedUpCnpj = useRef<string>("");
 
   function setField(key: keyof typeof fields) {
@@ -121,10 +122,18 @@ export default function CustomerForm({ customer }: Props) {
     if (lastLookedUpCnpj.current === cnpj) return;
     lastLookedUpCnpj.current = cnpj;
     setCnpjStatus("loading");
+    setCnpjError(null);
 
     try {
       const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
       if (!res.ok) {
+        let detail = `HTTP ${res.status}`;
+        try {
+          const body = await res.json();
+          if (body?.message) detail = body.message;
+          else if (body?.errors?.[0]?.message) detail = body.errors[0].message;
+        } catch { /* ignore */ }
+        setCnpjError(detail);
         setCnpjStatus("not_found");
         return;
       }
@@ -154,7 +163,9 @@ export default function CustomerForm({ customer }: Props) {
         city: city || prev.city,
       }));
       setCnpjStatus("found");
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erro desconhecido.";
+      setCnpjError(msg);
       setCnpjStatus("error");
     }
   }
@@ -245,12 +256,12 @@ export default function CustomerForm({ customer }: Props) {
           )}
           {cnpjStatus === "not_found" && (
             <p className="text-xs text-orange-400 mt-1">
-              CNPJ não encontrado na Receita Federal.
+              CNPJ não encontrado.{cnpjError ? ` (${cnpjError})` : ""}
             </p>
           )}
           {cnpjStatus === "error" && (
-            <p className="text-xs text-gray-500 mt-1">
-              Não foi possível consultar a Receita Federal.
+            <p className="text-xs text-red-400 mt-1">
+              Erro ao consultar Receita Federal.{cnpjError ? ` Detalhe: ${cnpjError}` : ""}
             </p>
           )}
         </div>

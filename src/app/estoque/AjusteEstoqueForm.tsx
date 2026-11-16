@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { adjustStock } from "./actions";
 
-interface Product { id: string; name: string; sku?: string; stock: number }
+interface Product { id: string; name: string; sku?: string; barcode?: string; stock: number }
 
 export default function AjusteEstoqueForm({ products }: { products: Product[] }) {
   const [state, action, isPending] = useActionState(adjustStock, null);
@@ -14,7 +14,8 @@ export default function AjusteEstoqueForm({ products }: { products: Product[] })
   const filtered = products.filter(
     (p) =>
       p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.sku ?? "").toLowerCase().includes(search.toLowerCase())
+      (p.sku ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (p.barcode ?? "").includes(search)
   );
 
   if (!open) {
@@ -83,7 +84,7 @@ export default function AjusteEstoqueForm({ products }: { products: Product[] })
               <label className="text-xs text-gray-400 block mb-1">Produto *</label>
               <input
                 type="text"
-                placeholder="Buscar por nome ou SKU..."
+                placeholder="Buscar por nome, SKU ou código de barras..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full bg-brand-gray-mid border border-brand-gray-light rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-yellow mb-2"

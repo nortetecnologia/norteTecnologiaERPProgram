@@ -130,7 +130,6 @@ function buildProductPayload(formData: FormData, name: string): Record<string, u
     sku: (formData.get("sku") as string)?.trim() || null,
     brand: (formData.get("brand") as string)?.trim() || null,
     barcode: (formData.get("barcode") as string)?.trim() || null,
-    internal_code: (formData.get("internal_code") as string)?.trim() || null,
     price: parseFloat(formData.get("price") as string) || 0,
     price_max: parseFloat(formData.get("price_max") as string) || null,
     stock: parseInt(formData.get("stock") as string) || 0,

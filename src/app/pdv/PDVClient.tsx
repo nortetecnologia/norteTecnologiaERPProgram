@@ -4,7 +4,7 @@ import { useState, useActionState } from "react";
 import { createSale } from "./actions";
 import { formatCurrency } from "@/lib/utils";
 
-interface Product { id: string; name: string; price: number; sku?: string; stock?: number; product_images?: { url: string; is_primary: boolean }[] | null }
+interface Product { id: string; name: string; price: number; sku?: string; barcode?: string; stock?: number; product_images?: { url: string; is_primary: boolean }[] | null }
 interface Customer { id: string; name: string; phone?: string }
 interface CartItem { product_id: string; description: string; quantity: number; unit_price: number }
 interface Payment { method: string; amount: number }
@@ -34,8 +34,21 @@ export default function PDVClient({
   const filteredProducts = products.filter(
     (p) =>
       p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.sku ?? "").toLowerCase().includes(search.toLowerCase())
+      (p.sku ?? "").toLowerCase().includes(search.toLowerCase()) ||
+      (p.barcode ?? "").includes(search)
   );
+
+  function handleSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key !== "Enter") return;
+    const val = search.trim();
+    if (!val) return;
+    const exact = products.find((p) => p.barcode === val);
+    if (exact) {
+      e.preventDefault();
+      addToCart(exact);
+      setSearch("");
+    }
+  }
 
   function addToCart(product: Product) {
     setCart((prev) => {
@@ -94,9 +107,10 @@ export default function PDVClient({
 
         <input
           type="text"
-          placeholder="Buscar produto por nome ou SKU..."
+          placeholder="Buscar por nome, SKU ou código de barras..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={handleSearchKeyDown}
           className="w-full bg-brand-gray-mid border border-brand-gray-light rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-yellow mb-3"
         />
 
