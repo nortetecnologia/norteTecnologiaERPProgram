@@ -91,7 +91,7 @@ export default async function DashboardPage() {
               ),
             },
             {
-              href: "/produtos/novo",
+              href: "/produtos",
               label: "Novo Produto",
               adminOnly: false,
               icon: (

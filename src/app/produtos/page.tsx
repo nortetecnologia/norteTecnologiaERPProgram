@@ -3,8 +3,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/auth";
 import { ProdutosClient, type ProductData, type CategoryOption } from "./ProdutosClient";
 
-export default async function ProdutosPage() {
+export default async function ProdutosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ editId?: string }>;
+}) {
   await requireAuth();
+  const { editId } = await searchParams;
   const supabase = createAdminClient();
 
   const [{ data: rawProducts }, { data: rawCategories }] = await Promise.all([
@@ -55,7 +60,7 @@ export default async function ProdutosPage() {
 
   return (
     <AppLayout>
-      <ProdutosClient products={products} categories={categories} />
+      <ProdutosClient products={products} categories={categories} initialEditId={editId} />
     </AppLayout>
   );
 }

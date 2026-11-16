@@ -20,15 +20,7 @@ const PAYMENT_LABELS: Record<string, string> = {
   credito_12x: "Crédito 12x",
 };
 
-function startOf(unit: "day" | "week" | "month") {
-  const d = new Date();
-  if (unit === "day") d.setHours(0, 0, 0, 0);
-  else if (unit === "week") { d.setDate(d.getDate() - d.getDay()); d.setHours(0, 0, 0, 0); }
-  else { d.setDate(1); d.setHours(0, 0, 0, 0); }
-  return d.toISOString();
-}
-
-function buildOSDateRange(ano: string, mes: string, dia: string) {
+function buildDateRange(ano: string, mes: string, dia: string) {
   const year = parseInt(ano) || new Date().getFullYear();
   if (mes && dia) {
     const m = parseInt(mes) - 1;
@@ -37,7 +29,6 @@ function buildOSDateRange(ano: string, mes: string, dia: string) {
       start: new Date(year, m, d, 0, 0, 0).toISOString(),
       end: new Date(year, m, d, 23, 59, 59).toISOString(),
       label: `${String(d).padStart(2, "0")}/${String(m + 1).padStart(2, "0")}/${year}`,
-      granularity: "day" as const,
     };
   }
   if (mes) {
@@ -46,14 +37,12 @@ function buildOSDateRange(ano: string, mes: string, dia: string) {
       start: new Date(year, m, 1).toISOString(),
       end: new Date(year, m + 1, 0, 23, 59, 59).toISOString(),
       label: `${String(m + 1).padStart(2, "0")}/${year}`,
-      granularity: "month" as const,
     };
   }
   return {
     start: new Date(year, 0, 1).toISOString(),
     end: new Date(year, 11, 31, 23, 59, 59).toISOString(),
     label: String(year),
-    granularity: "year" as const,
   };
 }
 
@@ -72,7 +61,6 @@ export default async function RelatoriosPage({
 }: {
   searchParams: Promise<{
     aba?: string;
-    periodo?: string;
     ano?: string;
     mes?: string;
     dia?: string;
@@ -87,6 +75,8 @@ export default async function RelatoriosPage({
   const aba = params.aba === "os" ? "os" : "vendas";
 
   const supabase = createAdminClient();
+  const now = new Date();
+  const currentYear = now.getFullYear();
 
   // ── Clientes para o filtro ─────────────────────────────────────────────────
   const { data: clientes } = await supabase
@@ -94,50 +84,72 @@ export default async function RelatoriosPage({
     .select("id, name")
     .order("name");
 
+  // ── Filter dropdown options ────────────────────────────────────────────────
+  const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+  const months = [
+    { value: "1", label: "Janeiro" }, { value: "2", label: "Fevereiro" },
+    { value: "3", label: "Março" }, { value: "4", label: "Abril" },
+    { value: "5", label: "Maio" }, { value: "6", label: "Junho" },
+    { value: "7", label: "Julho" }, { value: "8", label: "Agosto" },
+    { value: "9", label: "Setembro" }, { value: "10", label: "Outubro" },
+    { value: "11", label: "Novembro" }, { value: "12", label: "Dezembro" },
+  ];
+
+  const selectCls = "bg-brand-gray-dark border border-brand-gray-mid text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-brand-yellow";
+
   // ─────────────────────────────────────────────────────────────────────────
   // ABA VENDAS (PDV)
   // ─────────────────────────────────────────────────────────────────────────
   if (aba === "vendas") {
-    const { periodo = "mes" } = params;
-    const unit = periodo === "hoje" ? "day" : periodo === "semana" ? "week" : "month";
-    const since = startOf(unit);
+    const ano = params.ano ?? String(currentYear);
+    const mes = params.mes ?? String(now.getMonth() + 1); // default: current month
+    const dia = params.dia ?? "";
+    const clienteId = params.cliente_id ?? "";
 
-    const [salesRes, paymentsRes, saleItemsRes, osRes, osStatusRes] =
-      await Promise.all([
-        supabase
-          .from("erp_pdv_sales")
-          .select("id, total, discount, created_at")
-          .gte("created_at", since),
-        supabase
-          .from("erp_pdv_sale_payments")
-          .select("method, amount, erp_pdv_sales!inner(created_at)")
-          .gte("erp_pdv_sales.created_at", since),
-        supabase
-          .from("erp_pdv_sale_items")
-          .select("description, quantity, subtotal, erp_pdv_sales!inner(created_at)")
-          .gte("erp_pdv_sales.created_at", since),
-        supabase
-          .from("erp_service_orders")
-          .select("id, labor_cost, discount, erp_service_order_items(quantity, unit_price)")
-          .gte("created_at", since)
-          .neq("status", "cancelled"),
-        supabase
-          .from("erp_service_orders")
-          .select("status")
-          .gte("created_at", since),
-      ]);
+    const { start, end, label: periodoLabel } = buildDateRange(ano, mes, dia);
 
+    const daysInMonth = mes ? new Date(parseInt(ano), parseInt(mes), 0).getDate() : 31;
+    const hasFilter = !!(params.mes || params.dia || params.cliente_id);
+
+    // 1. Fetch sales (with optional customer filter)
+    let salesQuery = supabase
+      .from("erp_pdv_sales")
+      .select("id, total, discount, created_at")
+      .gte("created_at", start)
+      .lte("created_at", end);
+    if (clienteId) salesQuery = salesQuery.eq("customer_id", clienteId);
+    const salesRes = await salesQuery;
     const sales = salesRes.data ?? [];
+    const saleIds = sales.map((s: any) => s.id);
+
+    // 2. Fetch related data in parallel
+    const [paymentsRes, saleItemsRes, osRes, osStatusRes] = (await Promise.all([
+      saleIds.length > 0
+        ? supabase.from("erp_pdv_sale_payments").select("method, amount").in("sale_id", saleIds)
+        : Promise.resolve({ data: null }),
+      saleIds.length > 0
+        ? supabase.from("erp_pdv_sale_items").select("description, quantity, subtotal").in("sale_id", saleIds)
+        : Promise.resolve({ data: null }),
+      supabase
+        .from("erp_service_orders")
+        .select("id, labor_cost, discount, erp_service_order_items(quantity, unit_price)")
+        .gte("created_at", start).lte("created_at", end).neq("status", "cancelled"),
+      supabase
+        .from("erp_service_orders")
+        .select("status")
+        .gte("created_at", start).lte("created_at", end),
+    ])) as any[];
+
     const payments = paymentsRes.data ?? [];
     const saleItems = saleItemsRes.data ?? [];
     const osList = osRes.data ?? [];
     const osStatuses = osStatusRes.data ?? [];
 
-    const pdvTotal = sales.reduce((s, v) => s + (v.total ?? 0), 0);
+    const pdvTotal = sales.reduce((s: number, v: any) => s + (v.total ?? 0), 0);
     const pdvCount = sales.length;
     const pdvTicket = pdvCount > 0 ? pdvTotal / pdvCount : 0;
 
-    const osTotal = osList.reduce((s, o: any) => {
+    const osTotal = osList.reduce((s: number, o: any) => {
       const items = (o.erp_service_order_items ?? []).reduce(
         (si: number, i: any) => si + i.quantity * i.unit_price, 0
       );
@@ -165,35 +177,80 @@ export default async function RelatoriosPage({
 
     const statusCount: Record<string, number> = {};
     for (const o of osStatuses) {
-      statusCount[o.status] = (statusCount[o.status] ?? 0) + 1;
+      statusCount[(o as any).status] = (statusCount[(o as any).status] ?? 0) + 1;
     }
 
-    const periodos = [
-      { value: "hoje", label: "Hoje" },
-      { value: "semana", label: "Esta semana" },
-      { value: "mes", label: "Este mês" },
-    ];
+    const printParams = new URLSearchParams({ aba: "vendas", ano, mes });
+    if (dia) printParams.set("dia", dia);
+    if (clienteId) printParams.set("cliente_id", clienteId);
+    const printHref = `/relatorios/imprimir?${printParams.toString()}`;
 
     return (
       <AppLayout>
         <div className="p-6 max-w-5xl">
-          <PageHeader aba={aba} />
+          <PageHeader aba={aba} printHref={printHref} />
 
-          {/* Period filter */}
-          <div className="flex gap-2 mb-6">
-            {periodos.map((p) => (
-              <Link
-                key={p.value}
-                href={`/relatorios?aba=vendas&periodo=${p.value}`}
-                className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                  periodo === p.value
-                    ? "bg-brand-yellow text-brand-black border-brand-yellow font-bold"
-                    : "text-gray-400 border-brand-gray-mid hover:border-gray-400"
-                }`}
-              >
-                {p.label}
-              </Link>
-            ))}
+          {/* Filtros */}
+          <form method="GET" action="/relatorios" className="mb-6">
+            <input type="hidden" name="aba" value="vendas" />
+            <div className="flex flex-wrap gap-3 items-end">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Ano</label>
+                <select name="ano" defaultValue={ano} className={selectCls}>
+                  {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Mês</label>
+                <select name="mes" defaultValue={mes} className={selectCls}>
+                  <option value="">Todos</option>
+                  {months.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Dia</label>
+                <select name="dia" defaultValue={dia} className={selectCls}>
+                  <option value="">Todos</option>
+                  {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => (
+                    <option key={d} value={String(d)}>{String(d).padStart(2, "0")}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Cliente</label>
+                <select name="cliente_id" defaultValue={clienteId} className={`${selectCls} max-w-[200px]`}>
+                  <option value="">Todos os clientes</option>
+                  {(clientes ?? []).map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <button type="submit" className="px-4 py-2 bg-brand-yellow text-brand-black text-sm font-semibold rounded-lg hover:bg-yellow-400 transition-colors">
+                Filtrar
+              </button>
+              {hasFilter && (
+                <Link href="/relatorios?aba=vendas" className="px-4 py-2 border border-brand-gray-mid text-gray-400 text-sm rounded-lg hover:border-gray-400 transition-colors">
+                  Limpar
+                </Link>
+              )}
+            </div>
+          </form>
+
+          {/* Período label */}
+          <div className="text-sm text-gray-400 mb-5">
+            {pdvCount === 0 ? (
+              <span>Nenhuma venda em <span className="text-white font-medium">{periodoLabel}</span></span>
+            ) : (
+              <span>
+                <span className="text-white font-medium">{pdvCount}</span> venda{pdvCount !== 1 ? "s" : ""} em{" "}
+                <span className="text-white font-medium">{periodoLabel}</span>
+                {clienteId && clientes && (
+                  <span className="ml-1">
+                    — {clientes.find((c) => c.id === clienteId)?.name ?? ""}
+                  </span>
+                )}
+              </span>
+            )}
           </div>
 
           {/* Summary cards */}
@@ -242,10 +299,7 @@ export default async function RelatoriosPage({
             {/* OS by status */}
             <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl">
               <div className="px-5 py-3 border-b border-brand-gray-mid text-sm font-semibold text-gray-300">
-                OS ({osCount}) —{" "}
-                <span className="text-gray-500 font-normal">
-                  {periodo === "hoje" ? "hoje" : periodo === "semana" ? "esta semana" : "este mês"}
-                </span>
+                OS ({osCount}) — {periodoLabel}
               </div>
               {Object.keys(statusCount).length === 0 ? (
                 <p className="px-5 py-4 text-sm text-gray-600">Sem OS neste período.</p>
@@ -300,13 +354,12 @@ export default async function RelatoriosPage({
   // ─────────────────────────────────────────────────────────────────────────
   // ABA OS (Ordens de Serviço)
   // ─────────────────────────────────────────────────────────────────────────
-  const now = new Date();
-  const ano = params.ano ?? String(now.getFullYear());
+  const ano = params.ano ?? String(currentYear);
   const mes = params.mes ?? "";
   const dia = params.dia ?? "";
   const clienteId = params.cliente_id ?? "";
 
-  const { start, end, label: periodoLabel } = buildOSDateRange(ano, mes, dia);
+  const { start, end, label: periodoLabel } = buildDateRange(ano, mes, dia);
 
   // Build query
   let osQuery = supabase
@@ -351,103 +404,62 @@ export default async function RelatoriosPage({
     byDay[day].push(o);
   }
   const days = Object.keys(byDay).sort((a, b) => b.localeCompare(a));
-  const showGrouped = !dia; // group by day when not filtered by specific day
+  const showGrouped = !dia;
 
-  // Years for selector (current year - 4 to current year)
-  const currentYear = now.getFullYear();
-  const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
-  const months = [
-    { value: "1", label: "Janeiro" }, { value: "2", label: "Fevereiro" },
-    { value: "3", label: "Março" }, { value: "4", label: "Abril" },
-    { value: "5", label: "Maio" }, { value: "6", label: "Junho" },
-    { value: "7", label: "Julho" }, { value: "8", label: "Agosto" },
-    { value: "9", label: "Setembro" }, { value: "10", label: "Outubro" },
-    { value: "11", label: "Novembro" }, { value: "12", label: "Dezembro" },
-  ];
-  const daysInMonth = mes
-    ? new Date(parseInt(ano), parseInt(mes), 0).getDate()
-    : 31;
+  const daysInMonth = mes ? new Date(parseInt(ano), parseInt(mes), 0).getDate() : 31;
+  const hasFilter = !!(mes || dia || clienteId);
+
+  const printParams = new URLSearchParams({ aba: "os", ano });
+  if (mes) printParams.set("mes", mes);
+  if (dia) printParams.set("dia", dia);
+  if (clienteId) printParams.set("cliente_id", clienteId);
+  const printHref = `/relatorios/imprimir?${printParams.toString()}`;
 
   return (
     <AppLayout>
       <div className="p-6 max-w-5xl">
-        <PageHeader aba={aba} />
+        <PageHeader aba={aba} printHref={printHref} />
 
         {/* Filtros */}
         <form method="GET" action="/relatorios" className="mb-6">
           <input type="hidden" name="aba" value="os" />
           <div className="flex flex-wrap gap-3 items-end">
-            {/* Ano */}
             <div>
               <label className="block text-xs text-gray-500 mb-1">Ano</label>
-              <select
-                name="ano"
-                defaultValue={ano}
-                className="bg-brand-gray-dark border border-brand-gray-mid text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-brand-yellow"
-              >
-                {years.map((y) => (
-                  <option key={y} value={String(y)}>{y}</option>
-                ))}
+              <select name="ano" defaultValue={ano} className={selectCls}>
+                {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
               </select>
             </div>
-
-            {/* Mês */}
             <div>
               <label className="block text-xs text-gray-500 mb-1">Mês</label>
-              <select
-                name="mes"
-                defaultValue={mes}
-                className="bg-brand-gray-dark border border-brand-gray-mid text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-brand-yellow"
-              >
+              <select name="mes" defaultValue={mes} className={selectCls}>
                 <option value="">Todos</option>
-                {months.map((m) => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
-                ))}
+                {months.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
               </select>
             </div>
-
-            {/* Dia */}
             <div>
               <label className="block text-xs text-gray-500 mb-1">Dia</label>
-              <select
-                name="dia"
-                defaultValue={dia}
-                className="bg-brand-gray-dark border border-brand-gray-mid text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-brand-yellow"
-              >
+              <select name="dia" defaultValue={dia} className={selectCls}>
                 <option value="">Todos</option>
                 {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => (
                   <option key={d} value={String(d)}>{String(d).padStart(2, "0")}</option>
                 ))}
               </select>
             </div>
-
-            {/* Cliente */}
             <div>
               <label className="block text-xs text-gray-500 mb-1">Cliente</label>
-              <select
-                name="cliente_id"
-                defaultValue={clienteId}
-                className="bg-brand-gray-dark border border-brand-gray-mid text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-brand-yellow max-w-[200px]"
-              >
+              <select name="cliente_id" defaultValue={clienteId} className={`${selectCls} max-w-[200px]`}>
                 <option value="">Todos os clientes</option>
                 {(clientes ?? []).map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
             </div>
-
-            <button
-              type="submit"
-              className="px-4 py-2 bg-brand-yellow text-brand-black text-sm font-semibold rounded-lg hover:bg-yellow-400 transition-colors"
-            >
+            <button type="submit" className="px-4 py-2 bg-brand-yellow text-brand-black text-sm font-semibold rounded-lg hover:bg-yellow-400 transition-colors">
               Filtrar
             </button>
-
-            {(mes || dia || clienteId) && (
-              <Link
-                href="/relatorios?aba=os"
-                className="px-4 py-2 border border-brand-gray-mid text-gray-400 text-sm rounded-lg hover:border-gray-400 transition-colors"
-              >
+            {hasFilter && (
+              <Link href="/relatorios?aba=os" className="px-4 py-2 border border-brand-gray-mid text-gray-400 text-sm rounded-lg hover:border-gray-400 transition-colors">
                 Limpar
               </Link>
             )}
@@ -513,7 +525,6 @@ export default async function RelatoriosPage({
             Nenhuma OS encontrada para este período.
           </div>
         ) : showGrouped ? (
-          // Grouped by day
           <div className="space-y-4">
             {days.map((day) => {
               const dayOS = byDay[day];
@@ -532,7 +543,6 @@ export default async function RelatoriosPage({
             })}
           </div>
         ) : (
-          // Single view (day filter)
           <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl overflow-hidden">
             <OSTable rows={osWithTotals} />
           </div>
@@ -544,31 +554,41 @@ export default async function RelatoriosPage({
 
 // ─── sub-components ───────────────────────────────────────────────────────────
 
-function PageHeader({ aba }: { aba: "vendas" | "os" }) {
+function PageHeader({ aba, printHref }: { aba: "vendas" | "os"; printHref: string }) {
   return (
     <div className="flex items-center justify-between mb-6">
       <h1 className="text-2xl font-bold text-white">Relatórios</h1>
-      <div className="flex gap-1 p-1 bg-brand-gray-dark border border-brand-gray-mid rounded-lg">
-        <Link
-          href="/relatorios?aba=vendas"
-          className={`text-sm px-4 py-1.5 rounded-md transition-colors font-medium ${
-            aba === "vendas"
-              ? "bg-brand-yellow text-brand-black"
-              : "text-gray-400 hover:text-white"
-          }`}
+      <div className="flex items-center gap-3">
+        <a
+          href={printHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm px-3 py-1.5 rounded-lg border border-brand-gray-mid text-gray-400 hover:border-gray-400 hover:text-white transition-colors"
         >
-          Vendas PDV
-        </Link>
-        <Link
-          href="/relatorios?aba=os"
-          className={`text-sm px-4 py-1.5 rounded-md transition-colors font-medium ${
-            aba === "os"
-              ? "bg-brand-yellow text-brand-black"
-              : "text-gray-400 hover:text-white"
-          }`}
-        >
-          Ordens de Serviço
-        </Link>
+          Imprimir
+        </a>
+        <div className="flex gap-1 p-1 bg-brand-gray-dark border border-brand-gray-mid rounded-lg">
+          <Link
+            href="/relatorios?aba=vendas"
+            className={`text-sm px-4 py-1.5 rounded-md transition-colors font-medium ${
+              aba === "vendas"
+                ? "bg-brand-yellow text-brand-black"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            Vendas PDV
+          </Link>
+          <Link
+            href="/relatorios?aba=os"
+            className={`text-sm px-4 py-1.5 rounded-md transition-colors font-medium ${
+              aba === "os"
+                ? "bg-brand-yellow text-brand-black"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            Ordens de Serviço
+          </Link>
+        </div>
       </div>
     </div>
   );

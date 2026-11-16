@@ -46,6 +46,7 @@ type ModalState =
 interface Props {
   products: ProductData[];
   categories: CategoryOption[];
+  initialEditId?: string;
 }
 
 const inputCls =
@@ -65,9 +66,12 @@ function PlaceholderIcon() {
   );
 }
 
-export function ProdutosClient({ products, categories }: Props) {
+export function ProdutosClient({ products, categories, initialEditId }: Props) {
   const router = useRouter();
-  const [modal, setModal] = useState<ModalState>({ kind: "none" });
+  const initialProduct = initialEditId ? products.find((p) => p.id === initialEditId) : undefined;
+  const [modal, setModal] = useState<ModalState>(
+    initialProduct ? { kind: "edit", product: initialProduct } : { kind: "none" }
+  );
   const [isPending, startTransition] = useTransition();
   const [search, setSearch] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
