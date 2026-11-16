@@ -35,6 +35,7 @@ O middleware redireciona para `/login` qualquer acesso não autenticado.
 | `/pdv` | Ponto de Venda |
 | `/pdv/[id]/recibo` | Impressão de recibo de venda |
 | `/configuracoes` | Configurações do ERP (formas de pagamento) |
+| `/funcionarios` | Listagem e gestão de funcionários e cargos |
 | `/relatorios` | Relatórios de vendas e OS (básico — Fase 1) |
 
 ---
@@ -56,6 +57,13 @@ O middleware redireciona para `/login` qualquer acesso não autenticado.
 | `deleteServiceOrder` | `/os/actions.ts` | Excluir OS |
 | `uploadOSImage` | `/os/uploadAction.ts` | Upload de imagem para Cloudinary (pasta `norte-tecnologia/erp-os`) |
 | `createSale` | `/pdv/actions.ts` | Finalizar venda PDV com baixa de estoque |
+| `createFuncionario` | `/funcionarios/actions.ts` | Criar funcionário com cargos vinculados |
+| `updateFuncionario` | `/funcionarios/actions.ts` | Editar funcionário e seus cargos |
+| `deleteFuncionario` | `/funcionarios/actions.ts` | Excluir funcionário |
+| `toggleFuncionarioAtivo` | `/funcionarios/actions.ts` | Ativar/desativar funcionário |
+| `createCargo` | `/funcionarios/actions.ts` | Criar cargo |
+| `updateCargo` | `/funcionarios/actions.ts` | Editar cargo |
+| `deleteCargo` | `/funcionarios/actions.ts` | Excluir cargo |
 
 ---
 

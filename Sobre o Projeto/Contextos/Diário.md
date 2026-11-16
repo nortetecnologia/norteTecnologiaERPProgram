@@ -18,15 +18,28 @@
 
 ## 2. Última atualização
 
-- **Data:** 2026-11-11
-- **Atividade:** Sprint — Upload de imagem na edição de OS + Roles no dashboard (admin vs. operador).
-- **Commits:** pendente (sprint atual)
-- **Resultado:** Imagens agora podem ser adicionadas/removidas diretamente no detalhe da OS existente, sem precisar recriar. Dashboard exibe badge de role (Admin/Operador) e mostra botão "Configurações" apenas para admins.
+- **Data:** 2026-11-16
+- **Atividade:** Atualização de documentação — registro do módulo Funcionários/Cargos.
+- **Commits:** documentação apenas
+- **Resultado:** Diário, Rotas e Banco de Dados atualizados para refletir o módulo já implementado no commit `63d6c29`.
 - **Situação:** Sistema estável em produção.
 
 ---
 
 ## 3. Implementações concluídas
+
+### 2026-11-13 — Feat: módulo Funcionários e Cargos
+
+- **Objetivo:** Cadastrar e gerenciar os funcionários da empresa e seus cargos.
+- **Implementação:**
+  1. **Tabelas:** `erp_employees` (nome, telefone, e-mail, notas, is_active), `erp_roles` (nome, descrição, is_active), `erp_employee_roles` (N:N entre funcionário e cargo).
+  2. **`src/app/funcionarios/page.tsx`** — Server Component: busca funcionários com seus cargos via join e lista de cargos disponíveis; repassa ao client.
+  3. **`src/app/funcionarios/FuncionariosClient.tsx`** — Client Component com duas abas ("Funcionários" / "Cargos"), busca local, modais de criar/editar/excluir, toggle de ativo/inativo.
+  4. **`src/app/funcionarios/actions.ts`** — Server Actions: `createCargo`, `updateCargo`, `deleteCargo`, `createFuncionario`, `updateFuncionario`, `deleteFuncionario`, `toggleFuncionarioAtivo`. Todas com `requireAuth()`.
+  5. **`src/components/layout/Sidebar.tsx`** — item "Funcionários" adicionado ao `NAV_ITEMS`.
+- **Commit:** `63d6c29`
+
+---
 
 ### 2026-11-11 — Feat: upload de imagem na edição de OS + roles no dashboard
 
@@ -193,7 +206,6 @@
 
 | Item | Prioridade | Detalhe |
 |------|-----------|--------|
-| Configurar domínio `erp.nortetecnologia.com` | ALTA | Configurar na Vercel e apontar DNS |
 | Relatórios avançados | BAIXA | Fase 2 — faturamento, lucratividade |
 | Emissão de NF | BAIXA | Fase 2 — Focus NFe ou NFe.io |
 
@@ -201,11 +213,8 @@
 
 ## 5. Próximas etapas (Fase 2)
 
-1. **Configurar domínio** `erp.nortetecnologia.com` na Vercel
-2. **Upload de imagem na edição de OS** — reutilizar `uploadAction.ts` no form de edição
-3. **Relatórios avançados** — faturamento por período, OS por status, ticket médio
-4. **Roles no dashboard** — ações admin somente visíveis para `role === 'admin'`
-5. **Emissão de NF-e/NFS-e** — integração com Focus NFe ou NFe.io
+1. **Relatórios avançados** — faturamento por período, OS por status, ticket médio
+2. **Emissão de NF-e/NFS-e** — integração com Focus NFe ou NFe.io
 
 ---
 

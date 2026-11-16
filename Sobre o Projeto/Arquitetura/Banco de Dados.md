@@ -132,6 +132,42 @@ Todas as tabelas `erp_*` têm RLS habilitado:
 
 ---
 
+### `erp_employees`
+Funcionários da empresa.
+
+```sql
+id          UUID PRIMARY KEY
+name        TEXT NOT NULL
+phone       TEXT
+email       TEXT
+notes       TEXT
+is_active   BOOLEAN DEFAULT true
+created_at  TIMESTAMPTZ
+updated_at  TIMESTAMPTZ
+```
+
+### `erp_roles`
+Cargos disponíveis (ex: Técnico, Atendente, Gerente).
+
+```sql
+id          UUID PRIMARY KEY
+name        TEXT NOT NULL
+description TEXT
+is_active   BOOLEAN DEFAULT true
+created_at  TIMESTAMPTZ
+```
+
+### `erp_employee_roles`
+Relação N:N entre funcionários e cargos (um funcionário pode ter múltiplos cargos).
+
+```sql
+employee_id UUID → erp_employees
+role_id     UUID → erp_roles
+PRIMARY KEY (employee_id, role_id)
+```
+
+---
+
 ### `erp_user_roles` (referência — não usada ativamente)
 
 Tabela criada pelo `erp_004_user_roles.sql`. O controle de acesso atual usa `app_metadata.erp_role` no Supabase Auth (sem consulta a esta tabela), pois a role é lida diretamente do JWT.
@@ -154,3 +190,4 @@ Aplicadas no Supabase SQL Editor (já executadas em produção):
 3. `supabase/migrations/erp_003_pdv.sql` — tabelas `erp_pdv_sales`, `erp_pdv_sale_items`, `erp_pdv_sale_payments`, `erp_stock_movements`
 4. `supabase/migrations/erp_004_user_roles.sql` — tabela `erp_user_roles` (referência)
 5. **Manual:** `ALTER TABLE erp_service_orders ADD COLUMN IF NOT EXISTS images text[] DEFAULT '{}';`
+6. `supabase/migrations/erp_005_employees.sql` (ou manual) — tabelas `erp_employees`, `erp_roles`, `erp_employee_roles`
