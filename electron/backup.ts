@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { LocalDB, BackupConfig } from "./db";
+import { dumpSupabase } from "./dump";
 
 export class BackupEngine {
   private db: LocalDB;
@@ -31,16 +32,12 @@ export class BackupEngine {
         fs.mkdirSync(config.path, { recursive: true });
       }
 
-      const dbPath = this.db.getDbPath();
-      const ts = new Date().toISOString().replace(/[:.]/g, "-");
-      const destName = `erp-backup-${ts}.db`;
-      const destPath = path.join(config.path, destName);
-
-      fs.copyFileSync(dbPath, destPath);
+      const result = await dumpSupabase(config.path);
+      if (!result.success) return { success: false, error: result.error };
 
       this.pruneOld(config);
 
-      return { success: true, path: destPath };
+      return { success: true, path: result.path };
     } catch (err: unknown) {
       return { success: false, error: String(err) };
     }
@@ -49,7 +46,7 @@ export class BackupEngine {
   private pruneOld(config: BackupConfig) {
     try {
       const files = fs.readdirSync(config.path)
-        .filter(f => f.startsWith("erp-backup-") && f.endsWith(".db"))
+        .filter(f => f.startsWith("dump-supabase-") && f.endsWith(".json"))
         .map(f => ({ name: f, mtime: fs.statSync(path.join(config.path, f)).mtime }))
         .sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
 

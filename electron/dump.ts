@@ -12,19 +12,23 @@ export interface DumpResult {
 }
 
 // Tabelas reais do projeto (nomes no Supabase)
-const ERP_TABLES = [
+export const ERP_TABLES = [
+  "store_settings",
+  "categories",
+  "subcategories",
   "products",
   "product_images",
-  "categories",
+  "payment_methods",
   "erp_customers",
+  "erp_employees",
+  "erp_roles",
+  "erp_employee_roles",
   "erp_pdv_sales",
   "erp_pdv_sale_items",
+  "erp_pdv_sale_payments",
   "erp_service_orders",
   "erp_service_order_items",
   "erp_stock_movements",
-  "erp_pdv_sale_payments",
-  "payment_methods",
-  "store_settings",
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -90,14 +94,18 @@ export interface RestoreResult {
   error?: string;
 }
 
-// Ordem de inserção respeitando FKs
+// Ordem de inserção respeitando FKs (pai antes do filho)
 const RESTORE_ORDER = [
   "store_settings",
   "categories",
+  "subcategories",
   "products",
   "product_images",
   "payment_methods",
   "erp_customers",
+  "erp_roles",
+  "erp_employees",
+  "erp_employee_roles",
   "erp_pdv_sales",
   "erp_pdv_sale_items",
   "erp_pdv_sale_payments",
