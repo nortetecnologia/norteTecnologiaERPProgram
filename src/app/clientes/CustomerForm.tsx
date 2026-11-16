@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createCustomer, updateCustomer } from "./actions";
 import type { Customer } from "@/types";
@@ -10,6 +10,22 @@ interface Props {
 }
 
 type State = { error?: string; success?: boolean } | null;
+type CnpjStatus = "idle" | "loading" | "found" | "not_found" | "error";
+
+function maskCpfCnpj(raw: string): string {
+  const digits = raw.replace(/\D/g, "").slice(0, 14);
+  if (digits.length <= 11) {
+    return digits
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+  }
+  return digits
+    .replace(/(\d{2})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1.$2")
+    .replace(/(\d{3})(\d)/, "$1/$2")
+    .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+}
 
 function validateCpfCnpj(raw: string): string | null {
   const digits = raw.replace(/\D/g, "");
@@ -41,12 +57,13 @@ function validateCpfCnpj(raw: string): string | null {
     return null;
   }
 
-  return "CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos.";
+  if (digits.length > 0 && digits.length < 11) return null; // still typing
+  if (digits.length > 11 && digits.length < 14) return null; // still typing
+  return null;
 }
 
 export default function CustomerForm({ customer }: Props) {
   const router = useRouter();
-  const [clientError, setClientError] = useState<string | null>(null);
 
   const action = customer
     ? async (_: State, formData: FormData) => {
@@ -62,19 +79,104 @@ export default function CustomerForm({ customer }: Props) {
 
   const [state, formAction, isPending] = useActionState(action, null);
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    const form = e.currentTarget;
-    const cpfCnpj = (form.elements.namedItem("cpf_cnpj") as HTMLInputElement)?.value ?? "";
-    const err = validateCpfCnpj(cpfCnpj);
-    if (err) {
-      e.preventDefault();
-      setClientError(err);
+  const [fields, setFields] = useState({
+    name: customer?.name ?? "",
+    phone: customer?.phone ?? "",
+    email: customer?.email ?? "",
+    cpf_cnpj: customer?.cpf_cnpj ? maskCpfCnpj(customer.cpf_cnpj) : "",
+    city: customer?.city ?? "",
+    address: customer?.address ?? "",
+    notes: customer?.notes ?? "",
+  });
+
+  const [cpfCnpjError, setCpfCnpjError] = useState<string | null>(null);
+  const [cnpjStatus, setCnpjStatus] = useState<CnpjStatus>("idle");
+  const lastLookedUpCnpj = useRef<string>("");
+
+  function setField(key: keyof typeof fields) {
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setFields((prev) => ({ ...prev, [key]: e.target.value }));
+  }
+
+  function handleCpfCnpjChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const masked = maskCpfCnpj(e.target.value);
+    setFields((prev) => ({ ...prev, cpf_cnpj: masked }));
+
+    const digits = masked.replace(/\D/g, "");
+
+    if (digits.length === 11) {
+      setCpfCnpjError(validateCpfCnpj(masked));
+      setCnpjStatus("idle");
+    } else if (digits.length === 14) {
+      const err = validateCpfCnpj(masked);
+      setCpfCnpjError(err);
+      if (!err) lookupCnpj(digits);
     } else {
-      setClientError(null);
+      setCpfCnpjError(null);
+      if (cnpjStatus !== "idle") setCnpjStatus("idle");
     }
   }
 
-  const errorMsg = clientError ?? state?.error;
+  async function lookupCnpj(cnpj: string) {
+    if (lastLookedUpCnpj.current === cnpj) return;
+    lastLookedUpCnpj.current = cnpj;
+    setCnpjStatus("loading");
+
+    try {
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`);
+      if (!res.ok) {
+        setCnpjStatus("not_found");
+        return;
+      }
+      const data = await res.json();
+
+      const name = (data.razao_social || data.nome_fantasia || "").trim();
+      const email = (data.email || "").trim().toLowerCase();
+      const rawPhone = (data.ddd_telefone_1 || data.ddd_telefone_2 || "").replace(/\D/g, "");
+      const phone = rawPhone
+        ? rawPhone.replace(/^(\d{2})(\d{4,5})(\d{4})$/, "($1) $2-$3")
+        : "";
+      const addressParts = [
+        data.logradouro,
+        data.numero,
+        data.complemento,
+        data.bairro,
+      ].filter(Boolean);
+      const address = addressParts.join(", ");
+      const city = (data.municipio || "").trim();
+
+      setFields((prev) => ({
+        ...prev,
+        name: name || prev.name,
+        email: email || prev.email,
+        phone: phone || prev.phone,
+        address: address || prev.address,
+        city: city || prev.city,
+      }));
+      setCnpjStatus("found");
+    } catch {
+      setCnpjStatus("error");
+    }
+  }
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    const digits = fields.cpf_cnpj.replace(/\D/g, "");
+    if (digits && digits.length !== 11 && digits.length !== 14) {
+      e.preventDefault();
+      setCpfCnpjError("CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos.");
+      return;
+    }
+    const err = validateCpfCnpj(fields.cpf_cnpj);
+    if (err) {
+      e.preventDefault();
+      setCpfCnpjError(err);
+    }
+  }
+
+  const errorMsg = state?.error;
+
+  const inputClass =
+    "w-full bg-brand-gray-dark border border-brand-gray-mid rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand-yellow transition-colors";
 
   return (
     <form action={formAction} onSubmit={handleSubmit} className="space-y-4">
@@ -84,36 +186,111 @@ export default function CustomerForm({ customer }: Props) {
         </div>
       )}
 
-      <Field label="Nome *" name="name" defaultValue={customer?.name} required />
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field label="Telefone" name="phone" defaultValue={customer?.phone} placeholder="(95) 99999-9999" />
-        <Field label="E-mail" name="email" type="email" defaultValue={customer?.email} />
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field
-          label="CPF / CNPJ"
-          name="cpf_cnpj"
-          defaultValue={customer?.cpf_cnpj}
-          placeholder="000.000.000-00 ou 00.000.000/0000-00"
-          onChange={() => setClientError(null)}
+      <div>
+        <label className="block text-sm text-gray-400 mb-1.5">Nome *</label>
+        <input
+          name="name"
+          required
+          value={fields.name}
+          onChange={setField("name")}
+          className={inputClass}
+          placeholder="Nome completo ou razão social"
         />
-        <Field label="Cidade" name="city" defaultValue={customer?.city} />
       </div>
-      <Field label="Endereço" name="address" defaultValue={customer?.address} />
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm text-gray-400 mb-1.5">Telefone</label>
+          <input
+            name="phone"
+            type="tel"
+            value={fields.phone}
+            onChange={setField("phone")}
+            className={inputClass}
+            placeholder="(95) 99999-9999"
+          />
+        </div>
+        <div>
+          <label className="block text-sm text-gray-400 mb-1.5">E-mail</label>
+          <input
+            name="email"
+            type="email"
+            value={fields.email}
+            onChange={setField("email")}
+            className={inputClass}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm text-gray-400 mb-1.5">CPF / CNPJ</label>
+          <input
+            name="cpf_cnpj"
+            value={fields.cpf_cnpj}
+            onChange={handleCpfCnpjChange}
+            className={`${inputClass} ${cpfCnpjError ? "border-red-500/60 focus:border-red-500" : ""}`}
+            placeholder="000.000.000-00 ou 00.000.000/0000-00"
+          />
+          {cpfCnpjError && (
+            <p className="text-xs text-red-400 mt-1">{cpfCnpjError}</p>
+          )}
+          {cnpjStatus === "loading" && (
+            <p className="text-xs text-brand-yellow mt-1">Consultando Receita Federal...</p>
+          )}
+          {cnpjStatus === "found" && (
+            <p className="text-xs text-green-400 mt-1">
+              Dados preenchidos via Receita Federal.
+            </p>
+          )}
+          {cnpjStatus === "not_found" && (
+            <p className="text-xs text-orange-400 mt-1">
+              CNPJ não encontrado na Receita Federal.
+            </p>
+          )}
+          {cnpjStatus === "error" && (
+            <p className="text-xs text-gray-500 mt-1">
+              Não foi possível consultar a Receita Federal.
+            </p>
+          )}
+        </div>
+        <div>
+          <label className="block text-sm text-gray-400 mb-1.5">Cidade</label>
+          <input
+            name="city"
+            value={fields.city}
+            onChange={setField("city")}
+            className={inputClass}
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm text-gray-400 mb-1.5">Endereço</label>
+        <input
+          name="address"
+          value={fields.address}
+          onChange={setField("address")}
+          className={inputClass}
+          placeholder="Rua, número, bairro"
+        />
+      </div>
+
       <div>
         <label className="block text-sm text-gray-400 mb-1.5">Observações</label>
         <textarea
           name="notes"
-          defaultValue={customer?.notes ?? ""}
+          value={fields.notes}
+          onChange={setField("notes")}
           rows={3}
-          className="w-full bg-brand-gray-dark border border-brand-gray-mid rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand-yellow resize-none"
+          className={`${inputClass} resize-none`}
         />
       </div>
 
       <div className="flex gap-3 pt-2">
         <button
           type="submit"
-          disabled={isPending}
+          disabled={isPending || !!cpfCnpjError}
           className="bg-brand-yellow hover:bg-brand-yellow-dark text-brand-black font-bold px-6 py-2.5 rounded-lg text-sm transition-colors disabled:opacity-50"
         >
           {isPending ? "Salvando..." : customer ? "Salvar alterações" : "Criar cliente"}
@@ -127,38 +304,5 @@ export default function CustomerForm({ customer }: Props) {
         </button>
       </div>
     </form>
-  );
-}
-
-function Field({
-  label,
-  name,
-  type = "text",
-  defaultValue,
-  placeholder,
-  required,
-  onChange,
-}: {
-  label: string;
-  name: string;
-  type?: string;
-  defaultValue?: string;
-  placeholder?: string;
-  required?: boolean;
-  onChange?: () => void;
-}) {
-  return (
-    <div>
-      <label className="block text-sm text-gray-400 mb-1.5">{label}</label>
-      <input
-        type={type}
-        name={name}
-        defaultValue={defaultValue ?? ""}
-        placeholder={placeholder}
-        required={required}
-        onChange={onChange}
-        className="w-full bg-brand-gray-dark border border-brand-gray-mid rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand-yellow transition-colors"
-      />
-    </div>
   );
 }
