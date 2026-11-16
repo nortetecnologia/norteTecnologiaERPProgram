@@ -73,6 +73,8 @@ export interface ServiceOrder {
   notes?: string;
   estimated_at?: string;
   images?: string[];
+  issued_by?: string;
+  assigned_to?: string;
   created_at: string;
   updated_at: string;
   erp_customers?: Customer;
@@ -97,6 +99,8 @@ export interface PDVSale {
   discount: number;
   total: number;
   notes?: string;
+  seller_id?: string;
+  service_provider_id?: string;
   created_at: string;
   erp_customers?: Customer;
   erp_pdv_sale_items?: PDVSaleItem[];

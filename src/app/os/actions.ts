@@ -40,6 +40,8 @@ export async function createServiceOrder(_prevState: unknown, formData: FormData
     discount: parseFloat(formData.get("discount") as string) || 0,
     notes: (formData.get("notes") as string)?.trim() || null,
     estimated_at: (formData.get("estimated_at") as string) || null,
+    issued_by: (formData.get("issued_by") as string) || null,
+    assigned_to: (formData.get("assigned_to") as string) || null,
     ...(images.length > 0 ? { images } : {}),
   };
 

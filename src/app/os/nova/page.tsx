@@ -10,19 +10,15 @@ export default async function NovaOSPage() {
   if (!user) redirect("/login");
 
   const supabase = createAdminClient();
-  const { data: customersRaw } = await supabase
-    .from("erp_customers")
-    .select("id, name, phone")
-    .order("name");
-
-  const { data: productsRaw } = await supabase
-    .from("products")
-    .select("id, name, price, sku, product_type")
-    .eq("is_active", true)
-    .order("name");
+  const [{ data: customersRaw }, { data: productsRaw }, { data: employeesRaw }] = await Promise.all([
+    supabase.from("erp_customers").select("id, name, phone").order("name"),
+    supabase.from("products").select("id, name, price, sku, product_type").eq("is_active", true).order("name"),
+    supabase.from("erp_employees").select("id, name").eq("is_active", true).order("name"),
+  ]);
 
   const customers = customersRaw ?? [];
   const products = productsRaw ?? [];
+  const employees = employeesRaw ?? [];
 
   return (
     <AppLayout>
@@ -30,7 +26,7 @@ export default async function NovaOSPage() {
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-white">Nova Ordem de Serviço</h1>
         </div>
-        <OSForm customers={customers} products={products} />
+        <OSForm customers={customers} products={products} employees={employees} />
       </div>
     </AppLayout>
   );

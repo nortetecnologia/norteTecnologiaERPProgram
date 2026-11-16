@@ -51,6 +51,8 @@ discount        NUMERIC(10,2)
 notes           TEXT                  -- observações internas
 estimated_at    DATE                  -- previsão de entrega
 images          TEXT[] DEFAULT '{}'   -- URLs Cloudinary (pasta norte-tecnologia/erp-os)
+issued_by       UUID → erp_employees  -- funcionário que emitiu a OS
+assigned_to     UUID → erp_employees  -- técnico/responsável pelo serviço
 created_at      TIMESTAMPTZ
 updated_at      TIMESTAMPTZ
 ```
@@ -74,14 +76,16 @@ created_at       TIMESTAMPTZ
 Vendas realizadas no PDV.
 
 ```sql
-id           UUID PRIMARY KEY
-sale_number  SERIAL UNIQUE
-customer_id  UUID → erp_customers    -- opcional
-subtotal     NUMERIC(10,2)
-discount     NUMERIC(10,2)
-total        NUMERIC(10,2)
-notes        TEXT
-created_at   TIMESTAMPTZ
+id                  UUID PRIMARY KEY
+sale_number         SERIAL UNIQUE
+customer_id         UUID → erp_customers    -- opcional
+subtotal            NUMERIC(10,2)
+discount            NUMERIC(10,2)
+total               NUMERIC(10,2)
+notes               TEXT
+seller_id           UUID → erp_employees    -- vendedor responsável pela venda
+service_provider_id UUID → erp_employees    -- prestador quando a venda inclui serviço
+created_at          TIMESTAMPTZ
 ```
 
 ### `erp_pdv_sale_items`
@@ -191,3 +195,4 @@ Aplicadas no Supabase SQL Editor (já executadas em produção):
 4. `supabase/migrations/erp_004_user_roles.sql` — tabela `erp_user_roles` (referência)
 5. **Manual:** `ALTER TABLE erp_service_orders ADD COLUMN IF NOT EXISTS images text[] DEFAULT '{}';`
 6. `supabase/migrations/erp_005_employees.sql` (ou manual) — tabelas `erp_employees`, `erp_roles`, `erp_employee_roles`
+7. `supabase/migrations/erp_006_employees_in_os_pdv.sql` — colunas `issued_by`, `assigned_to` em `erp_service_orders`; `seller_id`, `service_provider_id` em `erp_pdv_sales`

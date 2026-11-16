@@ -7,6 +7,7 @@ import { uploadOSImage } from "../uploadAction";
 
 interface Customer { id: string; name: string; phone?: string }
 interface Product { id: string; name: string; price: number; sku?: string; product_type: "product" | "service" }
+interface Employee { id: string; name: string }
 interface Item { description: string; quantity: number; unit_price: number; product_id?: string }
 
 const INITIAL: { error?: string } = {};
@@ -14,9 +15,11 @@ const INITIAL: { error?: string } = {};
 export default function OSForm({
   customers,
   products,
+  employees,
 }: {
   customers: Customer[];
   products: Product[];
+  employees: Employee[];
 }) {
   const [state, action, isPending] = useActionState(createServiceOrder, INITIAL);
   const [items, setItems] = useState<Item[]>([{ description: "", quantity: 1, unit_price: 0 }]);
@@ -331,6 +334,31 @@ export default function OSForm({
         >
           + Adicionar item
         </button>
+      </div>
+
+      {/* Responsáveis */}
+      <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl p-5 space-y-4">
+        <div className="text-sm font-semibold text-gray-300">Responsáveis</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Emissor</label>
+            <select name="issued_by" className={inputCls}>
+              <option value="">Selecione o emissor...</option>
+              {employees.map((e) => (
+                <option key={e.id} value={e.id}>{e.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Responsável pelo serviço</label>
+            <select name="assigned_to" className={inputCls}>
+              <option value="">Selecione o responsável...</option>
+              {employees.map((e) => (
+                <option key={e.id} value={e.id}>{e.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
 
       {/* Mão de obra + Descontos */}

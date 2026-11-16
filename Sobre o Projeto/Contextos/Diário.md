@@ -19,14 +19,32 @@
 ## 2. Última atualização
 
 - **Data:** 2026-11-16
-- **Atividade:** Atualização de documentação — registro do módulo Funcionários/Cargos.
-- **Commits:** documentação apenas
-- **Resultado:** Diário, Rotas e Banco de Dados atualizados para refletir o módulo já implementado no commit `63d6c29`.
-- **Situação:** Sistema estável em produção.
+- **Atividade:** Feat — emissor/responsável na OS + vendedor/prestador no PDV.
+- **Commits:** pendente (sprint atual)
+- **Resultado:** Dois selects de funcionário no formulário de nova OS (emissor + responsável); dois selects no PDV (vendedor + prestador de serviço). Colunas FK salvas nas tabelas. TypeScript sem erros.
+- **Situação:** Aguarda aplicação da migration `erp_006` no Supabase.
 
 ---
 
 ## 3. Implementações concluídas
+
+### 2026-11-16 — Feat: emissor/responsável na OS e vendedor/prestador no PDV
+
+- **Objetivo:** Registrar quem emitiu e quem realizou o serviço em cada OS; registrar vendedor e prestador de serviço em cada venda PDV.
+- **Implementação:**
+  1. **Migration** `erp_006_employees_in_os_pdv.sql`: adiciona `issued_by` e `assigned_to` (FK → `erp_employees`) em `erp_service_orders`; `seller_id` e `service_provider_id` (FK → `erp_employees`) em `erp_pdv_sales`. FKs com `ON DELETE SET NULL`.
+  2. **`src/types/index.ts`**: `ServiceOrder` recebe `issued_by?` e `assigned_to?`; `PDVSale` recebe `seller_id?` e `service_provider_id?`.
+  3. **`src/app/os/nova/page.tsx`**: busca `erp_employees` (is_active) em paralelo com clientes/produtos; passa `employees` ao `OSForm`.
+  4. **`src/app/os/nova/OSForm.tsx`**: nova prop `employees[]`; seção "Responsáveis" com dois `<select>` (`issued_by` / `assigned_to`) entre equipamento e mão de obra.
+  5. **`src/app/os/actions.ts`**: `createServiceOrder` lê e persiste `issued_by` e `assigned_to`.
+  6. **`src/app/pdv/page.tsx`**: busca `erp_employees` (is_active) em paralelo; passa `employees` ao `PDVClient`.
+  7. **`src/app/pdv/PDVClient.tsx`**: nova prop `employees[]`; dois `<select>` (`seller_id` / `service_provider_id`) exibidos no painel do carrinho quando há funcionários cadastrados.
+  8. **`src/app/pdv/actions.ts`**: `createSale` lê e persiste `seller_id` e `service_provider_id` (online e offline).
+- **TypeScript:** `tsc --noEmit` sem erros.
+- **Arquivos alterados:** `supabase/migrations/erp_006_employees_in_os_pdv.sql` (novo), `src/types/index.ts`, `src/app/os/nova/page.tsx`, `src/app/os/nova/OSForm.tsx`, `src/app/os/actions.ts`, `src/app/pdv/page.tsx`, `src/app/pdv/PDVClient.tsx`, `src/app/pdv/actions.ts`
+- **Pendência:** aplicar `erp_006_employees_in_os_pdv.sql` no Supabase SQL Editor.
+
+---
 
 ### 2026-11-13 — Feat: módulo Funcionários e Cargos
 

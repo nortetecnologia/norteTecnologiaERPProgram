@@ -32,6 +32,8 @@ export async function createSale(prevState: unknown, formData: FormData) {
   await requireAuth();
 
   const customerId = (formData.get("customer_id") as string) || null;
+  const sellerId = (formData.get("seller_id") as string) || null;
+  const serviceProviderId = (formData.get("service_provider_id") as string) || null;
   const discount = parseFloat(formData.get("discount") as string) || 0;
   const itemsCount = parseInt(formData.get("items_count") as string) || 0;
   const paymentsCount = parseInt(formData.get("payments_count") as string) || 0;
@@ -72,7 +74,7 @@ export async function createSale(prevState: unknown, formData: FormData) {
     const tempNumber = Math.floor(Date.now() / 1000) % 1000000;
     saleId = offlineInsert(
       "erp_pdv_sales",
-      { customer_id: customerId, subtotal, discount, total, sale_number: tempNumber },
+      { customer_id: customerId, subtotal, discount, total, sale_number: tempNumber, seller_id: sellerId, service_provider_id: serviceProviderId },
       ["sale_number"]
     );
     for (const item of items) {
@@ -110,7 +112,7 @@ export async function createSale(prevState: unknown, formData: FormData) {
   // Insere a venda
   const { data: sale, error: saleError } = await supabase
     .from("erp_pdv_sales")
-    .insert({ customer_id: customerId, subtotal, discount, total })
+    .insert({ customer_id: customerId, subtotal, discount, total, seller_id: sellerId, service_provider_id: serviceProviderId })
     .select("id, sale_number")
     .single();
 

@@ -9,15 +9,18 @@ interface Customer { id: string; name: string; phone?: string }
 interface CartItem { product_id: string; description: string; quantity: number; unit_price: number }
 interface Payment { method: string; amount: number }
 interface PaymentMethodOption { name: string; label: string }
+interface Employee { id: string; name: string }
 
 export default function PDVClient({
   products,
   customers,
   paymentMethods,
+  employees,
 }: {
   products: Product[];
   customers: Customer[];
   paymentMethods: PaymentMethodOption[];
+  employees: Employee[];
 }) {
   const defaultMethod = paymentMethods[0]?.name ?? "pix";
   const [state, action, isPending] = useActionState(createSale, null);
@@ -146,6 +149,36 @@ export default function PDVClient({
               ))}
             </select>
           </div>
+
+          {/* Vendedor + Prestador de serviço */}
+          {employees.length > 0 && (
+            <div className="space-y-2">
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">Vendedor</label>
+                <select
+                  name="seller_id"
+                  className="w-full bg-brand-gray-mid border border-brand-gray-light rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-yellow"
+                >
+                  <option value="">Selecione o vendedor...</option>
+                  {employees.map((e) => (
+                    <option key={e.id} value={e.id}>{e.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">Prestador de serviço</label>
+                <select
+                  name="service_provider_id"
+                  className="w-full bg-brand-gray-mid border border-brand-gray-light rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-yellow"
+                >
+                  <option value="">Selecione o prestador...</option>
+                  {employees.map((e) => (
+                    <option key={e.id} value={e.id}>{e.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
 
           {/* Cart */}
           <div>
