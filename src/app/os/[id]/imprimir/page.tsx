@@ -7,6 +7,7 @@ import PrintButtons from "./PrintButtons";
 
 interface StoreSettings {
   store_name: string;
+  phone_number?: string;
   whatsapp_number?: string;
   email?: string;
   address?: string;
@@ -59,7 +60,11 @@ export default async function OSPrintPage({
   const total = laborCost + itemsTotal - discount;
 
   const storeName = store?.store_name ?? "Norte Tecnologia";
-  const storePhone = store?.whatsapp_number ? formatPhone(store.whatsapp_number) : "";
+  const storePhone = store?.phone_number
+    ? formatPhone(store.phone_number)
+    : store?.whatsapp_number
+    ? formatPhone(store.whatsapp_number)
+    : "";
   const storeAddressParts = [store?.address, store?.city, store?.state_abbr].filter(Boolean);
   const storeAddress = storeAddressParts.join(" - ");
   const cnpj = (store as any)?.cnpj ?? "";

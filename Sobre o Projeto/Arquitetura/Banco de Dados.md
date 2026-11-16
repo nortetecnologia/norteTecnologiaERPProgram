@@ -11,7 +11,7 @@ O ERP compartilha o mesmo projeto Supabase do site de e-commerce.
 | `products` | Cadastro, edição, controle de estoque |
 | `categories` | Categorias de produtos |
 | `subcategories` | Subcategorias de produtos |
-| `store_settings` | Formas de pagamento usadas no PDV |
+| `store_settings` | Formas de pagamento, dados da empresa (nome, telefone, whatsapp, e-mail, endereço) |
 | `product_reviews` | Visualização no ERP (somente leitura) |
 
 ---
@@ -196,3 +196,4 @@ Aplicadas no Supabase SQL Editor (já executadas em produção):
 5. **Manual:** `ALTER TABLE erp_service_orders ADD COLUMN IF NOT EXISTS images text[] DEFAULT '{}';`
 6. `supabase/migrations/erp_005_employees.sql` (ou manual) — tabelas `erp_employees`, `erp_roles`, `erp_employee_roles`
 7. `supabase/migrations/erp_006_employees_in_os_pdv.sql` — colunas `issued_by`, `assigned_to` em `erp_service_orders`; `seller_id`, `service_provider_id` em `erp_pdv_sales`
+8. `supabase/migrations/erp_007_store_phone.sql` — coluna `phone_number` em `store_settings` (telefone fixo da empresa, exibido na OS e documentos impressos)

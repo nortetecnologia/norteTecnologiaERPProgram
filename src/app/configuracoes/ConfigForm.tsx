@@ -79,25 +79,37 @@ export default function ConfigForm({
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs text-gray-400 block mb-1">WhatsApp / Telefone</label>
+            <label className="text-xs text-gray-400 block mb-1">Telefone</label>
+            <input
+              type="text"
+              name="phone_number"
+              defaultValue={settings?.phone_number ?? ""}
+              placeholder="(95) 3000-0000"
+              className="w-full bg-brand-gray-mid border border-brand-gray-light rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-yellow"
+            />
+            <p className="text-xs text-gray-600 mt-0.5">Exibido na OS e documentos impressos.</p>
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">WhatsApp</label>
             <input
               type="text"
               name="whatsapp_number"
               defaultValue={settings?.whatsapp_number ?? ""}
-              placeholder="5591999999999"
+              placeholder="5595999999999"
               className="w-full bg-brand-gray-mid border border-brand-gray-light rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-yellow"
             />
+            <p className="text-xs text-gray-600 mt-0.5">Formato internacional para links wa.me.</p>
           </div>
-          <div>
-            <label className="text-xs text-gray-400 block mb-1">E-mail</label>
-            <input
-              type="email"
-              name="email"
-              defaultValue={settings?.email ?? ""}
-              placeholder="contato@empresa.com"
-              className="w-full bg-brand-gray-mid border border-brand-gray-light rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-yellow"
-            />
-          </div>
+        </div>
+        <div>
+          <label className="text-xs text-gray-400 block mb-1">E-mail</label>
+          <input
+            type="email"
+            name="email"
+            defaultValue={settings?.email ?? ""}
+            placeholder="contato@empresa.com"
+            className="w-full bg-brand-gray-mid border border-brand-gray-light rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-yellow"
+          />
         </div>
         <div>
           <label className="text-xs text-gray-400 block mb-1">Endereço</label>
