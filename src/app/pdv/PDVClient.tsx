@@ -103,7 +103,15 @@ export default function PDVClient({
     <div className="flex h-[calc(100vh-0px)] overflow-hidden">
       {/* Left: Product search + catalog */}
       <div className="flex-1 flex flex-col p-4 overflow-hidden border-r border-brand-gray-mid">
-        <h1 className="text-xl font-bold text-white mb-3">PDV — Ponto de Venda</h1>
+        <div className="flex items-center justify-between mb-3">
+          <h1 className="text-xl font-bold text-white">PDV — Ponto de Venda</h1>
+          <a
+            href="/pdv/vendas"
+            className="text-xs px-3 py-1.5 border border-brand-gray-mid text-gray-400 rounded-lg hover:border-gray-400 transition-colors"
+          >
+            Histórico de Vendas
+          </a>
+        </div>
 
         <input
           type="text"

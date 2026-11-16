@@ -160,3 +160,42 @@ export async function createSale(prevState: unknown, formData: FormData) {
   markLocalDataStale();
   redirect(`/pdv/${saleId}/recibo`);
 }
+
+export async function cancelSale(saleId: string): Promise<{ error?: string }> {
+  await requireAuth();
+
+  const supabase = createAdminClient();
+
+  const { data: items } = await supabase
+    .from("erp_pdv_sale_items")
+    .select("product_id, quantity")
+    .eq("sale_id", saleId);
+
+  if (items) {
+    for (const item of items) {
+      if (!item.product_id) continue;
+      const { data: product } = await supabase
+        .from("products")
+        .select("stock")
+        .eq("id", item.product_id)
+        .single();
+      if (product) {
+        await supabase
+          .from("products")
+          .update({ stock: (product.stock ?? 0) + item.quantity })
+          .eq("id", item.product_id);
+      }
+    }
+  }
+
+  const { error } = await supabase.from("erp_pdv_sales").delete().eq("id", saleId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/pdv");
+  revalidatePath("/pdv/vendas");
+  revalidatePath("/estoque");
+  revalidateTag("sales");
+  revalidateTag("dashboard");
+  markLocalDataStale();
+  redirect("/pdv/vendas");
+}

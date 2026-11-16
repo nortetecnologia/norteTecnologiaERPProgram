@@ -89,6 +89,76 @@ export async function createServiceOrder(_prevState: unknown, formData: FormData
   redirect(`/os/${newId}`);
 }
 
+export async function updateServiceOrder(id: string, _prevState: unknown, formData: FormData) {
+  await requireAuth();
+
+  const customerId = formData.get("customer_id") as string;
+  const title = (formData.get("title") as string)?.trim();
+  if (!title) return { error: "Título/problema é obrigatório." };
+  if (!customerId) return { error: "Selecione um cliente." };
+
+  const imagesCount = parseInt(formData.get("images_count") as string) || 0;
+  const images: string[] = [];
+  for (let i = 0; i < imagesCount; i++) {
+    const url = (formData.get(`image_url_${i}`) as string)?.trim();
+    if (url) images.push(url);
+  }
+
+  const osFields = {
+    customer_id: customerId,
+    title,
+    description: (formData.get("description") as string)?.trim() || null,
+    equipment: (formData.get("equipment") as string)?.trim() || null,
+    serial_number: (formData.get("serial_number") as string)?.trim() || null,
+    labor_cost: parseFloat(formData.get("labor_cost") as string) || 0,
+    discount: parseFloat(formData.get("discount") as string) || 0,
+    notes: (formData.get("notes") as string)?.trim() || null,
+    estimated_at: (formData.get("estimated_at") as string) || null,
+    issued_by: (formData.get("issued_by") as string) || null,
+    assigned_to: (formData.get("assigned_to") as string) || null,
+    images,
+    updated_at: new Date().toISOString(),
+  };
+
+  const itemsCount = parseInt(formData.get("items_count") as string) || 0;
+  const rawItems: Array<{ product_id: string | null; description: string; quantity: number; unit_price: number }> = [];
+  for (let i = 0; i < itemsCount; i++) {
+    const description = (formData.get(`item_description_${i}`) as string)?.trim();
+    if (!description) continue;
+    rawItems.push({
+      product_id: (formData.get(`item_product_id_${i}`) as string) || null,
+      description,
+      quantity: parseInt(formData.get(`item_quantity_${i}`) as string) || 1,
+      unit_price: parseFloat(formData.get(`item_unit_price_${i}`) as string) || 0,
+    });
+  }
+
+  if (isOfflineMode()) {
+    offlineUpdate("erp_service_orders", id, osFields);
+    offlineDelete("erp_service_order_items", id);
+    for (const item of rawItems) {
+      offlineInsert("erp_service_order_items", { ...item, service_order_id: id });
+    }
+  } else {
+    const supabase = createAdminClient();
+    const { error } = await supabase.from("erp_service_orders").update(osFields).eq("id", id);
+    if (error) return { error: error.message };
+
+    await supabase.from("erp_service_order_items").delete().eq("service_order_id", id);
+    if (rawItems.length > 0) {
+      await supabase.from("erp_service_order_items").insert(
+        rawItems.map((item) => ({ ...item, service_order_id: id }))
+      );
+    }
+  }
+
+  revalidatePath(`/os/${id}`);
+  revalidatePath("/os");
+  revalidateTag("service-orders");
+  markLocalDataStale();
+  redirect(`/os/${id}`);
+}
+
 export async function updateOSStatus(id: string, status: OSStatus) {
   await requireAuth();
   const payload = { status, updated_at: new Date().toISOString() };

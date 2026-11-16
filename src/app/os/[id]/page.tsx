@@ -41,6 +41,12 @@ export default async function OSDetailPage({ params }: { params: Promise<{ id: s
           </div>
           <div className="flex gap-2">
             <Link
+              href={`/os/${id}/editar`}
+              className="text-sm px-4 py-2 border border-brand-gray-mid text-gray-300 rounded-lg hover:border-gray-400 transition-colors"
+            >
+              ✏️ Editar
+            </Link>
+            <Link
               href={`/os/${id}/imprimir`}
               className="text-sm px-4 py-2 border border-brand-gray-mid text-gray-300 rounded-lg hover:border-gray-400 transition-colors"
             >

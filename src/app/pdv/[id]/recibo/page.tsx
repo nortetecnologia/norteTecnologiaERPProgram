@@ -2,6 +2,19 @@ import { notFound } from "next/navigation";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
 import { getSaleReceipt } from "@/lib/queries";
 import type { PDVSale } from "@/types";
+import ReciboActions from "./ReciboActions";
+import PrintButton from "./PrintButton";
+
+const PAYMENT_LABELS: Record<string, string> = {
+  dinheiro: "Dinheiro",
+  pix: "Pix",
+  debito: "Débito",
+  credito_1x: "Crédito 1x",
+  credito_2x: "Crédito 2x",
+  credito_3x: "Crédito 3x",
+  credito_6x: "Crédito 6x",
+  credito_12x: "Crédito 12x",
+};
 
 export default async function ReciboPage({
   params,
@@ -17,26 +30,10 @@ export default async function ReciboPage({
   const items = sale.erp_pdv_sale_items ?? [];
   const payments = sale.erp_pdv_sale_payments ?? [];
 
-  const PAYMENT_LABELS: Record<string, string> = {
-    dinheiro: "Dinheiro",
-    pix: "Pix",
-    debito: "Débito",
-    credito_1x: "Crédito 1x",
-    credito_2x: "Crédito 2x",
-    credito_3x: "Crédito 3x",
-    credito_6x: "Crédito 6x",
-    credito_12x: "Crédito 12x",
-  };
-
   return (
     <div className="min-h-screen bg-white text-black p-6 max-w-sm mx-auto font-mono text-sm">
-      <div className="no-print flex gap-2 mb-4">
-        <button
-          onClick={() => window.print()}
-          className="bg-gray-900 text-white text-xs px-3 py-1.5 rounded-lg"
-        >
-          🖨 Imprimir
-        </button>
+      <div className="no-print flex flex-wrap gap-2 mb-4">
+        <PrintButton />
         <a
           href="/pdv"
           className="bg-gray-100 text-gray-700 text-xs px-3 py-1.5 rounded-lg"
@@ -44,11 +41,18 @@ export default async function ReciboPage({
           Nova venda
         </a>
         <a
+          href="/pdv/vendas"
+          className="bg-gray-100 text-gray-700 text-xs px-3 py-1.5 rounded-lg"
+        >
+          Histórico
+        </a>
+        <a
           href="/dashboard"
           className="text-gray-400 text-xs px-3 py-1.5"
         >
           Dashboard
         </a>
+        <ReciboActions saleId={id} />
       </div>
 
       {/* Receipt */}

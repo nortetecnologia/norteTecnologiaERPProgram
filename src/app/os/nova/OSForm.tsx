@@ -10,23 +10,50 @@ interface Product { id: string; name: string; price: number; sku?: string; barco
 interface Employee { id: string; name: string }
 interface Item { description: string; quantity: number; unit_price: number; product_id?: string }
 
+export interface OSInitialData {
+  customer_id?: string;
+  title?: string;
+  description?: string | null;
+  equipment?: string | null;
+  serial_number?: string | null;
+  estimated_at?: string | null;
+  labor_cost?: number;
+  discount?: number;
+  notes?: string | null;
+  issued_by?: string | null;
+  assigned_to?: string | null;
+  images?: string[];
+  items?: Item[];
+}
+
 const INITIAL: { error?: string } = {};
 
 export default function OSForm({
   customers,
   products,
   employees,
+  serverAction,
+  initialData,
+  submitLabel = "Criar Ordem de Serviço",
 }: {
   customers: Customer[];
   products: Product[];
   employees: Employee[];
+  serverAction?: (prevState: unknown, formData: FormData) => Promise<{ error?: string }>;
+  initialData?: OSInitialData;
+  submitLabel?: string;
 }) {
-  const [state, action, isPending] = useActionState(createServiceOrder, INITIAL);
-  const [items, setItems] = useState<Item[]>([{ description: "", quantity: 1, unit_price: 0 }]);
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const actionFn = serverAction ?? createServiceOrder;
+  const [state, action, isPending] = useActionState(actionFn, INITIAL);
+  const [items, setItems] = useState<Item[]>(
+    initialData?.items?.length ? initialData.items : [{ description: "", quantity: 1, unit_price: 0 }]
+  );
+  const [imageUrls, setImageUrls] = useState<string[]>(initialData?.images ?? []);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [productSearch, setProductSearch] = useState<Record<number, string>>({});
+  const [productSearch, setProductSearch] = useState<Record<number, string>>(
+    initialData?.items?.reduce((acc, item, i) => ({ ...acc, [i]: item.description }), {} as Record<number, string>) ?? {}
+  );
   const [openPicker, setOpenPicker] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -106,7 +133,7 @@ export default function OSForm({
       <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl p-5 space-y-4">
         <div>
           <label className="text-xs text-gray-400 block mb-1">Cliente *</label>
-          <select name="customer_id" required className={inputCls}>
+          <select name="customer_id" required defaultValue={initialData?.customer_id ?? ""} className={inputCls}>
             <option value="">Selecione o cliente...</option>
             {customers.map((c) => (
               <option key={c.id} value={c.id}>
@@ -122,6 +149,7 @@ export default function OSForm({
             type="text"
             name="title"
             required
+            defaultValue={initialData?.title ?? ""}
             placeholder="Ex: Notebook não liga, tela quebrada..."
             className={inputCls}
           />
@@ -132,6 +160,7 @@ export default function OSForm({
           <textarea
             name="description"
             rows={3}
+            defaultValue={initialData?.description ?? ""}
             placeholder="Descreva com mais detalhes..."
             className={`${inputCls} resize-none`}
           />
@@ -144,15 +173,15 @@ export default function OSForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="text-xs text-gray-400 block mb-1">Equipamento</label>
-            <input type="text" name="equipment" placeholder="Ex: Notebook Dell Inspiron 15" className={inputCls} />
+            <input type="text" name="equipment" defaultValue={initialData?.equipment ?? ""} placeholder="Ex: Notebook Dell Inspiron 15" className={inputCls} />
           </div>
           <div>
             <label className="text-xs text-gray-400 block mb-1">Número de série</label>
-            <input type="text" name="serial_number" placeholder="SN / IMEI" className={inputCls} />
+            <input type="text" name="serial_number" defaultValue={initialData?.serial_number ?? ""} placeholder="SN / IMEI" className={inputCls} />
           </div>
           <div>
             <label className="text-xs text-gray-400 block mb-1">Previsão de conclusão</label>
-            <input type="date" name="estimated_at" className={inputCls} />
+            <input type="date" name="estimated_at" defaultValue={initialData?.estimated_at?.slice(0, 10) ?? ""} className={inputCls} />
           </div>
         </div>
       </div>
@@ -343,7 +372,7 @@ export default function OSForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="text-xs text-gray-400 block mb-1">Emissor</label>
-            <select name="issued_by" className={inputCls}>
+            <select name="issued_by" defaultValue={initialData?.issued_by ?? ""} className={inputCls}>
               <option value="">Selecione o emissor...</option>
               {employees.map((e) => (
                 <option key={e.id} value={e.id}>{e.name}</option>
@@ -352,7 +381,7 @@ export default function OSForm({
           </div>
           <div>
             <label className="text-xs text-gray-400 block mb-1">Responsável pelo serviço</label>
-            <select name="assigned_to" className={inputCls}>
+            <select name="assigned_to" defaultValue={initialData?.assigned_to ?? ""} className={inputCls}>
               <option value="">Selecione o responsável...</option>
               {employees.map((e) => (
                 <option key={e.id} value={e.id}>{e.name}</option>
@@ -367,11 +396,11 @@ export default function OSForm({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-xs text-gray-400 block mb-1">Mão de obra (R$)</label>
-            <input type="number" name="labor_cost" defaultValue="0" min="0" step="0.01" className={inputCls} />
+            <input type="number" name="labor_cost" defaultValue={initialData?.labor_cost ?? 0} min="0" step="0.01" className={inputCls} />
           </div>
           <div>
             <label className="text-xs text-gray-400 block mb-1">Desconto (R$)</label>
-            <input type="number" name="discount" defaultValue="0" min="0" step="0.01" className={inputCls} />
+            <input type="number" name="discount" defaultValue={initialData?.discount ?? 0} min="0" step="0.01" className={inputCls} />
           </div>
         </div>
 
@@ -380,6 +409,7 @@ export default function OSForm({
           <textarea
             name="notes"
             rows={2}
+            defaultValue={initialData?.notes ?? ""}
             placeholder="Notas internas (não aparecem na OS impressa)"
             className={`${inputCls} resize-none`}
           />
@@ -399,7 +429,7 @@ export default function OSForm({
           disabled={isPending}
           className="flex-1 bg-brand-yellow hover:bg-brand-yellow-dark text-brand-black font-bold py-3 rounded-xl transition-colors disabled:opacity-50"
         >
-          {isPending ? "Salvando..." : "Criar Ordem de Serviço"}
+          {isPending ? "Salvando..." : submitLabel}
         </button>
         <a
           href="/os"
