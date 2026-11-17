@@ -7,6 +7,8 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
   const isLoginPage = pathname === "/login";
+  const isPublicAuthPage =
+    pathname === "/esqueci-senha" || pathname === "/redefinir-senha";
   const isPublicAsset =
     pathname.startsWith("/_next") ||
     pathname.startsWith("/icons") ||
@@ -55,7 +57,7 @@ export async function middleware(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      if (!isLoginPage) {
+      if (!isLoginPage && !isPublicAuthPage) {
         const url = request.nextUrl.clone();
         url.pathname = "/login";
         return NextResponse.redirect(url);
@@ -68,7 +70,7 @@ export async function middleware(request: NextRequest) {
 
     if (!role) {
       // Authenticated in Supabase but no ERP access
-      if (!isLoginPage) {
+      if (!isLoginPage && !isPublicAuthPage) {
         const url = request.nextUrl.clone();
         url.pathname = "/login";
         url.searchParams.set("error", "unauthorized");
@@ -85,7 +87,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url);
     }
   } catch {
-    if (!isLoginPage) {
+    if (!isLoginPage && !isPublicAuthPage) {
       const url = request.nextUrl.clone();
       url.pathname = "/login";
       return NextResponse.redirect(url);

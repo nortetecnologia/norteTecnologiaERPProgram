@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { loginAction } from "./actions";
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -5,12 +6,17 @@ const ERROR_MESSAGES: Record<string, string> = {
   rate_limit: "Muitas tentativas. Aguarde 15 minutos.",
   unauthorized: "Sem acesso ao ERP. Contate o administrador.",
   forbidden: "Sem permissão para esta ação.",
+  reset_error: "Erro ao redefinir senha. Tente novamente.",
+};
+
+const SUCCESS_MESSAGES: Record<string, string> = {
+  done: "Senha redefinida com sucesso. Faça login com a nova senha.",
 };
 
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; reset?: string }>;
 }) {
   return (
     <div className="min-h-screen bg-brand-black flex items-center justify-center px-4">
@@ -32,7 +38,7 @@ export default function LoginPage({
             Entre com suas credenciais para continuar
           </p>
 
-          <ErrorBanner searchParams={searchParams} />
+          <StatusBanner searchParams={searchParams} />
 
           <form action={loginAction} className="space-y-5">
             <div>
@@ -70,6 +76,15 @@ export default function LoginPage({
               Entrar
             </button>
           </form>
+
+          <div className="mt-5 text-center">
+            <Link
+              href="/esqueci-senha"
+              className="text-[#4b5563] text-sm hover:text-gray-400 transition-colors"
+            >
+              Esqueci a senha
+            </Link>
+          </div>
         </div>
 
         <p className="text-center text-[#4b5563] text-xs mt-6">
@@ -80,12 +95,21 @@ export default function LoginPage({
   );
 }
 
-async function ErrorBanner({
+async function StatusBanner({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; reset?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, reset } = await searchParams;
+
+  if (reset && SUCCESS_MESSAGES[reset]) {
+    return (
+      <div className="mb-5 p-3 rounded-lg text-sm border bg-green-500/10 border-green-500/30 text-green-400">
+        {SUCCESS_MESSAGES[reset]}
+      </div>
+    );
+  }
+
   if (!error) return null;
 
   const message = ERROR_MESSAGES[error] ?? "Ocorreu um erro. Tente novamente.";
