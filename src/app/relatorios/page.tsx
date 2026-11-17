@@ -65,6 +65,7 @@ export default async function RelatoriosPage({
     mes?: string;
     dia?: string;
     cliente_id?: string;
+    detalhes?: string;
   }>;
 }) {
   const anonClient = await createClient();
@@ -73,6 +74,7 @@ export default async function RelatoriosPage({
 
   const params = await searchParams;
   const aba = params.aba === "os" ? "os" : "vendas";
+  const detalhes = params.detalhes === "1";
 
   const supabase = createAdminClient();
   const now = new Date();
@@ -102,7 +104,7 @@ export default async function RelatoriosPage({
   // ─────────────────────────────────────────────────────────────────────────
   if (aba === "vendas") {
     const ano = params.ano ?? String(currentYear);
-    const mes = params.mes ?? String(now.getMonth() + 1); // default: current month
+    const mes = params.mes ?? String(now.getMonth() + 1);
     const dia = params.dia ?? "";
     const clienteId = params.cliente_id ?? "";
 
@@ -111,10 +113,10 @@ export default async function RelatoriosPage({
     const daysInMonth = mes ? new Date(parseInt(ano), parseInt(mes), 0).getDate() : 31;
     const hasFilter = !!(params.mes || params.dia || params.cliente_id);
 
-    // 1. Fetch sales (with optional customer filter)
+    // 1. Fetch sales with customer info
     let salesQuery = supabase
       .from("erp_pdv_sales")
-      .select("id, total, discount, created_at")
+      .select("id, sale_number, total, discount, created_at, customer_id, erp_customers(name)")
       .gte("created_at", start)
       .lte("created_at", end);
     if (clienteId) salesQuery = salesQuery.eq("customer_id", clienteId);
@@ -128,7 +130,7 @@ export default async function RelatoriosPage({
         ? supabase.from("erp_pdv_sale_payments").select("method, amount").in("sale_id", saleIds)
         : Promise.resolve({ data: null }),
       saleIds.length > 0
-        ? supabase.from("erp_pdv_sale_items").select("description, quantity, subtotal").in("sale_id", saleIds)
+        ? supabase.from("erp_pdv_sale_items").select("sale_id, description, quantity, unit_price, subtotal").in("sale_id", saleIds)
         : Promise.resolve({ data: null }),
       supabase
         .from("erp_service_orders")
@@ -180,10 +182,44 @@ export default async function RelatoriosPage({
       statusCount[(o as any).status] = (statusCount[(o as any).status] ?? 0) + 1;
     }
 
+    // Top cliente (vendas)
+    const clienteByTotal: Record<string, { name: string; total: number }> = {};
+    for (const s of sales) {
+      const cid = (s as any).customer_id;
+      if (!cid) continue;
+      const cname = (s as any).erp_customers?.name ?? "?";
+      clienteByTotal[cid] = {
+        name: cname,
+        total: (clienteByTotal[cid]?.total ?? 0) + ((s as any).total ?? 0),
+      };
+    }
+    const topClienteVendas = Object.entries(clienteByTotal)
+      .sort((a, b) => b[1].total - a[1].total)[0] ?? null;
+
+    // Items per sale map (for detailed view)
+    const saleItemsMap: Record<string, any[]> = {};
+    for (const item of saleItems) {
+      const sid = (item as any).sale_id as string;
+      if (sid) {
+        if (!saleItemsMap[sid]) saleItemsMap[sid] = [];
+        saleItemsMap[sid].push(item);
+      }
+    }
+
     const printParams = new URLSearchParams({ aba: "vendas", ano, mes });
     if (dia) printParams.set("dia", dia);
     if (clienteId) printParams.set("cliente_id", clienteId);
+    if (detalhes) printParams.set("detalhes", "1");
     const printHref = `/relatorios/imprimir?${printParams.toString()}`;
+
+    // Toggle href (preserves all current params, flips detalhes)
+    const baseVendasParams = new URLSearchParams({ aba: "vendas", ano });
+    if (mes) baseVendasParams.set("mes", mes);
+    if (dia) baseVendasParams.set("dia", dia);
+    if (clienteId) baseVendasParams.set("cliente_id", clienteId);
+    const toggleVendasHref = detalhes
+      ? `/relatorios?${baseVendasParams.toString()}`
+      : `/relatorios?${new URLSearchParams({ ...Object.fromEntries(baseVendasParams), detalhes: "1" }).toString()}`;
 
     return (
       <AppLayout>
@@ -193,6 +229,7 @@ export default async function RelatoriosPage({
           {/* Filtros */}
           <form method="GET" action="/relatorios" className="mb-6">
             <input type="hidden" name="aba" value="vendas" />
+            {detalhes && <input type="hidden" name="detalhes" value="1" />}
             <div className="flex flex-wrap gap-3 items-end">
               <div>
                 <label className="block text-xs text-gray-500 mb-1">Ano</label>
@@ -254,7 +291,7 @@ export default async function RelatoriosPage({
           </div>
 
           {/* Summary cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             {[
               { label: "Receita PDV", value: formatCurrency(pdvTotal), color: "text-green-400" },
               { label: "Vendas PDV", value: String(pdvCount), color: "text-blue-400" },
@@ -267,6 +304,28 @@ export default async function RelatoriosPage({
               </div>
             ))}
           </div>
+
+          {/* Rankings */}
+          {(topClienteVendas || topProducts[0]) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              {topClienteVendas && (
+                <div className="bg-brand-gray-dark border border-brand-yellow/30 rounded-xl p-4">
+                  <div className="text-xs text-gray-500 mb-1">🏆 Cliente que mais comprou</div>
+                  <div className="text-white font-semibold text-lg truncate">{topClienteVendas[1].name}</div>
+                  <div className="text-brand-yellow text-sm mt-0.5">{formatCurrency(topClienteVendas[1].total)}</div>
+                </div>
+              )}
+              {topProducts[0] && (
+                <div className="bg-brand-gray-dark border border-brand-yellow/30 rounded-xl p-4">
+                  <div className="text-xs text-gray-500 mb-1">🏷 Produto mais vendido</div>
+                  <div className="text-white font-semibold text-lg truncate">{topProducts[0][0]}</div>
+                  <div className="text-gray-400 text-sm mt-0.5">
+                    {topProducts[0][1].qty} un · {formatCurrency(topProducts[0][1].total)}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             {/* Payment methods */}
@@ -317,7 +376,7 @@ export default async function RelatoriosPage({
           </div>
 
           {/* Top products */}
-          <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl">
+          <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl mb-6">
             <div className="px-5 py-3 border-b border-brand-gray-mid text-sm font-semibold text-gray-300">
               Produtos mais vendidos (PDV)
             </div>
@@ -346,6 +405,32 @@ export default async function RelatoriosPage({
               </table>
             )}
           </div>
+
+          {/* Vendas no período (lista detalhada) */}
+          <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl">
+            <div className="px-5 py-3 border-b border-brand-gray-mid flex justify-between items-center">
+              <span className="text-sm font-semibold text-gray-300">
+                Vendas no período ({pdvCount})
+              </span>
+              {pdvCount > 0 && (
+                <Link
+                  href={toggleVendasHref}
+                  className={`text-xs px-3 py-1 rounded border transition-colors ${
+                    detalhes
+                      ? "bg-brand-yellow/20 text-brand-yellow border-brand-yellow/50"
+                      : "border-brand-gray-mid text-gray-400 hover:border-gray-400"
+                  }`}
+                >
+                  {detalhes ? "▾ Ocultar itens" : "▸ Ver itens por venda"}
+                </Link>
+              )}
+            </div>
+            {pdvCount === 0 ? (
+              <p className="px-5 py-4 text-sm text-gray-600">Sem vendas neste período.</p>
+            ) : (
+              <VendasTable sales={sales} saleItemsMap={saleItemsMap} showDetails={detalhes} />
+            )}
+          </div>
         </div>
       </AppLayout>
     );
@@ -367,7 +452,7 @@ export default async function RelatoriosPage({
     .select(`
       id, number, title, status, equipment, labor_cost, discount, created_at,
       erp_customers(id, name),
-      erp_service_order_items(quantity, unit_price)
+      erp_service_order_items(description, quantity, unit_price)
     `)
     .gte("created_at", start)
     .lte("created_at", end)
@@ -396,6 +481,37 @@ export default async function RelatoriosPage({
     statusCount[o.status] = (statusCount[o.status] ?? 0) + 1;
   }
 
+  // Top cliente (OS)
+  const osClienteByTotal: Record<string, { name: string; total: number }> = {};
+  for (const o of osWithTotals) {
+    const cid = (o.erp_customers as any)?.id;
+    const cname = (o.erp_customers as any)?.name;
+    if (!cid || !cname) continue;
+    osClienteByTotal[cid] = {
+      name: cname,
+      total: (osClienteByTotal[cid]?.total ?? 0) + o.computed_total,
+    };
+  }
+  const topClienteOS = Object.entries(osClienteByTotal)
+    .sort((a, b) => b[1].total - a[1].total)[0] ?? null;
+
+  // Top serviço/produto (OS items)
+  const osServByQty: Record<string, { qty: number; total: number }> = {};
+  for (const o of osWithTotals) {
+    for (const item of (o.erp_service_order_items ?? []) as any[]) {
+      const desc = (item.description as string) || "?";
+      osServByQty[desc] = {
+        qty: (osServByQty[desc]?.qty ?? 0) + (item.quantity ?? 1),
+        total: (osServByQty[desc]?.total ?? 0) + (item.quantity ?? 1) * (item.unit_price ?? 0),
+      };
+    }
+  }
+  const topServico = Object.entries(osServByQty)
+    .sort((a, b) => b[1].qty - a[1].qty)[0] ?? null;
+  const topServicos = Object.entries(osServByQty)
+    .sort((a, b) => b[1].qty - a[1].qty)
+    .slice(0, 10);
+
   // Group by day for month/year views
   const byDay: Record<string, typeof osWithTotals> = {};
   for (const o of osWithTotals) {
@@ -413,7 +529,17 @@ export default async function RelatoriosPage({
   if (mes) printParams.set("mes", mes);
   if (dia) printParams.set("dia", dia);
   if (clienteId) printParams.set("cliente_id", clienteId);
+  if (detalhes) printParams.set("detalhes", "1");
   const printHref = `/relatorios/imprimir?${printParams.toString()}`;
+
+  // Toggle href for OS
+  const baseOSParams = new URLSearchParams({ aba: "os", ano });
+  if (mes) baseOSParams.set("mes", mes);
+  if (dia) baseOSParams.set("dia", dia);
+  if (clienteId) baseOSParams.set("cliente_id", clienteId);
+  const toggleOSHref = detalhes
+    ? `/relatorios?${baseOSParams.toString()}`
+    : `/relatorios?${new URLSearchParams({ ...Object.fromEntries(baseOSParams), detalhes: "1" }).toString()}`;
 
   return (
     <AppLayout>
@@ -423,6 +549,7 @@ export default async function RelatoriosPage({
         {/* Filtros */}
         <form method="GET" action="/relatorios" className="mb-6">
           <input type="hidden" name="aba" value="os" />
+          {detalhes && <input type="hidden" name="detalhes" value="1" />}
           <div className="flex flex-wrap gap-3 items-end">
             <div>
               <label className="block text-xs text-gray-500 mb-1">Ano</label>
@@ -481,6 +608,26 @@ export default async function RelatoriosPage({
           ))}
         </div>
 
+        {/* Rankings */}
+        {(topClienteOS || topServico) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            {topClienteOS && (
+              <div className="bg-brand-gray-dark border border-brand-yellow/30 rounded-xl p-4">
+                <div className="text-xs text-gray-500 mb-1">🏆 Cliente com mais OS</div>
+                <div className="text-white font-semibold text-lg truncate">{topClienteOS[1].name}</div>
+                <div className="text-brand-yellow text-sm mt-0.5">{formatCurrency(topClienteOS[1].total)}</div>
+              </div>
+            )}
+            {topServico && (
+              <div className="bg-brand-gray-dark border border-brand-yellow/30 rounded-xl p-4">
+                <div className="text-xs text-gray-500 mb-1">🔧 Serviço/produto mais pedido</div>
+                <div className="text-white font-semibold text-lg truncate">{topServico[0]}</div>
+                <div className="text-gray-400 text-sm mt-0.5">{topServico[1].qty} un</div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Status breakdown */}
         {Object.keys(statusCount).length > 0 && (
           <div className="flex flex-wrap gap-2 mb-6">
@@ -500,7 +647,36 @@ export default async function RelatoriosPage({
           </div>
         )}
 
-        {/* Período label */}
+        {/* Top serviços/produtos em OS */}
+        {topServicos.length > 0 && (
+          <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl mb-6">
+            <div className="px-5 py-3 border-b border-brand-gray-mid text-sm font-semibold text-gray-300">
+              Serviços/Produtos mais solicitados (OS)
+            </div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-xs text-gray-500 uppercase">
+                  <th className="text-left px-5 py-2">#</th>
+                  <th className="text-left px-5 py-2">Descrição</th>
+                  <th className="text-right px-5 py-2">Qtd</th>
+                  <th className="text-right px-5 py-2">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topServicos.map(([desc, { qty, total }], i) => (
+                  <tr key={desc} className="border-t border-brand-gray-mid hover:bg-white/5">
+                    <td className="px-5 py-2.5 text-gray-500 w-8">{i + 1}</td>
+                    <td className="px-5 py-2.5 text-white">{desc}</td>
+                    <td className="px-5 py-2.5 text-right text-gray-300">{qty}</td>
+                    <td className="px-5 py-2.5 text-right text-brand-yellow font-medium">{formatCurrency(total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Período label + toggle */}
         <div className="flex items-center justify-between mb-3">
           <div className="text-sm text-gray-400">
             {osCount === 0 ? (
@@ -517,6 +693,18 @@ export default async function RelatoriosPage({
               </span>
             )}
           </div>
+          {osCount > 0 && (
+            <Link
+              href={toggleOSHref}
+              className={`text-xs px-3 py-1 rounded border transition-colors ${
+                detalhes
+                  ? "bg-brand-yellow/20 text-brand-yellow border-brand-yellow/50"
+                  : "border-brand-gray-mid text-gray-400 hover:border-gray-400"
+              }`}
+            >
+              {detalhes ? "▾ Ocultar itens" : "▸ Ver itens por OS"}
+            </Link>
+          )}
         </div>
 
         {/* OS list */}
@@ -537,14 +725,14 @@ export default async function RelatoriosPage({
                     </span>
                     <span className="text-sm font-bold text-brand-yellow">{formatCurrency(dayTotal)}</span>
                   </div>
-                  <OSTable rows={dayOS} />
+                  <OSTable rows={dayOS} showDetails={detalhes} />
                 </div>
               );
             })}
           </div>
         ) : (
           <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl overflow-hidden">
-            <OSTable rows={osWithTotals} />
+            <OSTable rows={osWithTotals} showDetails={detalhes} />
           </div>
         )}
       </div>
@@ -594,7 +782,7 @@ function PageHeader({ aba, printHref }: { aba: "vendas" | "os"; printHref: strin
   );
 }
 
-function OSTable({ rows }: { rows: any[] }) {
+function OSTable({ rows, showDetails }: { rows: any[]; showDetails?: boolean }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -609,7 +797,7 @@ function OSTable({ rows }: { rows: any[] }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((o) => (
+          {rows.flatMap((o) => [
             <tr key={o.id} className="border-t border-brand-gray-mid hover:bg-white/5">
               <td className="px-5 py-3">
                 <Link href={`/os/${o.id}`} className="text-brand-yellow font-mono hover:underline">
@@ -635,8 +823,78 @@ function OSTable({ rows }: { rows: any[] }) {
               <td className="px-5 py-3 text-right font-medium text-white">
                 {formatCurrency(o.computed_total)}
               </td>
-            </tr>
-          ))}
+            </tr>,
+            ...(showDetails
+              ? (o.erp_service_order_items ?? []).map((item: any, idx: number) => (
+                  <tr key={`${o.id}-item-${idx}`} className="border-t border-brand-gray-mid/30 bg-white/[0.02]">
+                    <td className="pl-10 pr-2 py-1.5 text-xs text-gray-600">↳</td>
+                    <td />
+                    <td colSpan={3} className="px-2 py-1.5 text-xs text-gray-400">
+                      {item.description} — {item.quantity}× {formatCurrency(item.unit_price ?? 0)}
+                    </td>
+                    <td className="px-5 py-1.5 text-xs text-right text-gray-400">
+                      {formatCurrency((item.quantity ?? 1) * (item.unit_price ?? 0))}
+                    </td>
+                  </tr>
+                ))
+              : []),
+          ])}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function VendasTable({
+  sales,
+  saleItemsMap,
+  showDetails,
+}: {
+  sales: any[];
+  saleItemsMap: Record<string, any[]>;
+  showDetails?: boolean;
+}) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-xs text-gray-500 uppercase border-b border-brand-gray-mid">
+            <th className="text-left px-5 py-2.5">Nº</th>
+            <th className="text-left px-5 py-2.5">Data</th>
+            <th className="text-left px-5 py-2.5">Cliente</th>
+            <th className="text-right px-5 py-2.5">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sales.flatMap((s: any) => [
+            <tr key={s.id} className="border-t border-brand-gray-mid hover:bg-white/5">
+              <td className="px-5 py-3 font-mono text-brand-yellow font-bold">
+                <Link href={`/pdv/${s.id}/recibo`} className="hover:underline">
+                  #{String(s.sale_number).padStart(6, "0")}
+                </Link>
+              </td>
+              <td className="px-5 py-3 text-gray-400 whitespace-nowrap text-xs">{fmtDate(s.created_at)}</td>
+              <td className="px-5 py-3 text-gray-300 max-w-[180px] truncate">
+                {(s.erp_customers as any)?.name ?? <span className="text-gray-600">—</span>}
+              </td>
+              <td className="px-5 py-3 text-right font-semibold text-green-400">
+                {formatCurrency(s.total)}
+              </td>
+            </tr>,
+            ...(showDetails
+              ? (saleItemsMap[s.id] ?? []).map((item: any, idx: number) => (
+                  <tr key={`${s.id}-item-${idx}`} className="border-t border-brand-gray-mid/30 bg-white/[0.02]">
+                    <td className="pl-10 pr-2 py-1.5 text-xs text-gray-600">↳</td>
+                    <td colSpan={2} className="px-2 py-1.5 text-xs text-gray-400">
+                      {item.description} — {item.quantity}× {formatCurrency(item.unit_price ?? 0)}
+                    </td>
+                    <td className="px-5 py-1.5 text-xs text-right text-gray-400">
+                      {formatCurrency(item.subtotal ?? (item.quantity ?? 1) * (item.unit_price ?? 0))}
+                    </td>
+                  </tr>
+                ))
+              : []),
+          ])}
         </tbody>
       </table>
     </div>

@@ -72,6 +72,7 @@ export default async function RelatoriosImprimirPage({
     mes?: string;
     dia?: string;
     cliente_id?: string;
+    detalhes?: string;
   }>;
 }) {
   const anonClient = await createClient();
@@ -80,6 +81,7 @@ export default async function RelatoriosImprimirPage({
 
   const params = await searchParams;
   const aba = params.aba === "os" ? "os" : "vendas";
+  const detalhes = params.detalhes === "1";
   const now = new Date();
   const ano = params.ano ?? String(now.getFullYear());
   const mes = params.mes ?? (aba === "vendas" ? String(now.getMonth() + 1) : "");
@@ -108,6 +110,7 @@ export default async function RelatoriosImprimirPage({
   if (mes) backParams.set("mes", mes);
   if (dia) backParams.set("dia", dia);
   if (clienteId) backParams.set("cliente_id", clienteId);
+  if (detalhes) backParams.set("detalhes", "1");
   const backHref = `/relatorios?${backParams.toString()}`;
 
   // ── Styles ────────────────────────────────────────────────────────────────
@@ -137,15 +140,22 @@ export default async function RelatoriosImprimirPage({
     fontSize: "9pt",
   };
   const tdRight: CSSProperties = { ...td, textAlign: "right" };
+  const tdItem: CSSProperties = {
+    padding: "2px 8px 2px 24px",
+    borderBottom: "1px solid #f5f5f5",
+    fontSize: "8pt",
+    color: "#555",
+  };
 
   // ── Vendas PDV ─────────────────────────────────────────────────────────────
   if (aba === "vendas") {
-    // Fetch sales with optional customer filter
+    // Fetch sales with customer info
     let salesQuery = supabase
       .from("erp_pdv_sales")
-      .select("id, total, discount, created_at, customer_id")
+      .select("id, sale_number, total, discount, created_at, customer_id, erp_customers(name)")
       .gte("created_at", start)
-      .lte("created_at", end);
+      .lte("created_at", end)
+      .order("created_at", { ascending: false });
     if (clienteId) salesQuery = salesQuery.eq("customer_id", clienteId);
     const salesRes = await salesQuery;
     const sales = salesRes.data ?? [];
@@ -156,7 +166,7 @@ export default async function RelatoriosImprimirPage({
         ? supabase.from("erp_pdv_sale_payments").select("method, amount").in("sale_id", saleIds)
         : Promise.resolve({ data: null }),
       saleIds.length > 0
-        ? supabase.from("erp_pdv_sale_items").select("description, quantity, subtotal").in("sale_id", saleIds)
+        ? supabase.from("erp_pdv_sale_items").select("sale_id, description, quantity, unit_price, subtotal").in("sale_id", saleIds)
         : Promise.resolve({ data: null }),
     ])) as any[];
 
@@ -182,6 +192,30 @@ export default async function RelatoriosImprimirPage({
       productTotals[desc].total += (item as any).subtotal ?? 0;
     }
     const topProducts = Object.entries(productTotals).sort((a, b) => b[1].total - a[1].total);
+
+    // Top cliente
+    const clienteByTotal: Record<string, { name: string; total: number }> = {};
+    for (const s of sales) {
+      const cid = (s as any).customer_id;
+      if (!cid) continue;
+      const cname = (s as any).erp_customers?.name ?? "?";
+      clienteByTotal[cid] = {
+        name: cname,
+        total: (clienteByTotal[cid]?.total ?? 0) + ((s as any).total ?? 0),
+      };
+    }
+    const topCliente = Object.entries(clienteByTotal)
+      .sort((a, b) => b[1].total - a[1].total)[0] ?? null;
+
+    // Items per sale map
+    const saleItemsMap: Record<string, any[]> = {};
+    for (const item of saleItems) {
+      const sid = (item as any).sale_id as string;
+      if (sid) {
+        if (!saleItemsMap[sid]) saleItemsMap[sid] = [];
+        saleItemsMap[sid].push(item);
+      }
+    }
 
     return (
       <>
@@ -254,6 +288,26 @@ export default async function RelatoriosImprimirPage({
             ))}
           </div>
 
+          {/* Rankings */}
+          {(topCliente || topProducts[0]) && (
+            <div style={{ display: "flex", gap: "16px", margin: "8px 0", flexWrap: "wrap" }}>
+              {topCliente && (
+                <div style={{ border: "1px solid #e8c84a", borderRadius: "4px", padding: "8px 16px", minWidth: "160px", background: "#fffbeb" }}>
+                  <div style={{ fontSize: "7pt", textTransform: "uppercase", color: "#666" }}>🏆 Cliente que mais comprou</div>
+                  <div style={{ fontWeight: "bold", fontSize: "10pt" }}>{topCliente[1].name}</div>
+                  <div style={{ fontSize: "9pt", color: "#555" }}>{formatCurrency(topCliente[1].total)}</div>
+                </div>
+              )}
+              {topProducts[0] && (
+                <div style={{ border: "1px solid #e8c84a", borderRadius: "4px", padding: "8px 16px", minWidth: "160px", background: "#fffbeb" }}>
+                  <div style={{ fontSize: "7pt", textTransform: "uppercase", color: "#666" }}>🏷 Produto mais vendido</div>
+                  <div style={{ fontWeight: "bold", fontSize: "10pt" }}>{topProducts[0][0]}</div>
+                  <div style={{ fontSize: "9pt", color: "#555" }}>{topProducts[0][1].qty} un · {formatCurrency(topProducts[0][1].total)}</div>
+                </div>
+              )}
+            </div>
+          )}
+
           {hr()}
 
           {/* Formas de pagamento */}
@@ -317,6 +371,60 @@ export default async function RelatoriosImprimirPage({
             </>
           )}
 
+          {/* Lista de vendas */}
+          {pdvCount > 0 && (
+            <>
+              {hr()}
+              <div style={{ ...bold, fontSize: "9pt", margin: "8px 0 4px" }}>
+                VENDAS NO PERÍODO ({pdvCount})
+                {detalhes && <span style={{ fontWeight: "normal", fontSize: "8pt", color: "#666", marginLeft: "8px" }}>— itens detalhados</span>}
+              </div>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    <th style={{ ...th, width: "70px" }}>Nº</th>
+                    <th style={th}>Data</th>
+                    <th style={th}>Cliente</th>
+                    <th style={{ ...th, textAlign: "right" }}>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sales.flatMap((s: any) => [
+                    <tr key={s.id}>
+                      <td style={{ ...td, fontFamily: "monospace", fontWeight: "bold" }}>
+                        #{String(s.sale_number).padStart(6, "0")}
+                      </td>
+                      <td style={{ ...td, whiteSpace: "nowrap" }}>{fmtDate(s.created_at)}</td>
+                      <td style={td}>{(s.erp_customers as any)?.name ?? "—"}</td>
+                      <td style={{ ...tdRight, fontWeight: "bold" }}>{formatCurrency(s.total)}</td>
+                    </tr>,
+                    ...(detalhes
+                      ? (saleItemsMap[s.id] ?? []).map((item: any, idx: number) => (
+                          <tr key={`${s.id}-i-${idx}`} style={{ background: "#fafafa" }}>
+                            <td style={tdItem}>↳</td>
+                            <td colSpan={2} style={tdItem}>
+                              {item.description} — {item.quantity}× {formatCurrency(item.unit_price ?? 0)}
+                            </td>
+                            <td style={{ ...tdItem, textAlign: "right" }}>
+                              {formatCurrency(item.subtotal ?? (item.quantity ?? 1) * (item.unit_price ?? 0))}
+                            </td>
+                          </tr>
+                        ))
+                      : []),
+                  ])}
+                  <tr>
+                    <td colSpan={3} style={{ ...td, textAlign: "right", ...bold, borderTop: "2px solid #333" }}>
+                      Total
+                    </td>
+                    <td style={{ ...tdRight, ...bold, borderTop: "2px solid #333" }}>
+                      {formatCurrency(pdvTotal)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </>
+          )}
+
           {pdvCount === 0 && (
             <p style={{ color: "#666", textAlign: "center", padding: "20px 0" }}>
               Nenhuma venda encontrada para este período.
@@ -333,7 +441,7 @@ export default async function RelatoriosImprimirPage({
     .select(`
       id, number, title, status, equipment, labor_cost, discount, created_at,
       erp_customers(id, name),
-      erp_service_order_items(quantity, unit_price)
+      erp_service_order_items(description, quantity, unit_price)
     `)
     .gte("created_at", start)
     .lte("created_at", end)
@@ -360,6 +468,37 @@ export default async function RelatoriosImprimirPage({
   for (const o of osWithTotals) {
     statusCount[o.status] = (statusCount[o.status] ?? 0) + 1;
   }
+
+  // Top cliente (OS)
+  const osClienteByTotal: Record<string, { name: string; total: number }> = {};
+  for (const o of osWithTotals) {
+    const cid = (o.erp_customers as any)?.id;
+    const cname = (o.erp_customers as any)?.name;
+    if (!cid || !cname) continue;
+    osClienteByTotal[cid] = {
+      name: cname,
+      total: (osClienteByTotal[cid]?.total ?? 0) + o.computed_total,
+    };
+  }
+  const topClienteOS = Object.entries(osClienteByTotal)
+    .sort((a, b) => b[1].total - a[1].total)[0] ?? null;
+
+  // Top serviço/produto
+  const osServByQty: Record<string, { qty: number; total: number }> = {};
+  for (const o of osWithTotals) {
+    for (const item of (o.erp_service_order_items ?? []) as any[]) {
+      const desc = (item.description as string) || "?";
+      osServByQty[desc] = {
+        qty: (osServByQty[desc]?.qty ?? 0) + (item.quantity ?? 1),
+        total: (osServByQty[desc]?.total ?? 0) + (item.quantity ?? 1) * (item.unit_price ?? 0),
+      };
+    }
+  }
+  const topServico = Object.entries(osServByQty)
+    .sort((a, b) => b[1].qty - a[1].qty)[0] ?? null;
+  const topServicos = Object.entries(osServByQty)
+    .sort((a, b) => b[1].qty - a[1].qty)
+    .slice(0, 10);
 
   return (
     <>
@@ -432,6 +571,26 @@ export default async function RelatoriosImprimirPage({
           ))}
         </div>
 
+        {/* Rankings */}
+        {(topClienteOS || topServico) && (
+          <div style={{ display: "flex", gap: "16px", margin: "8px 0", flexWrap: "wrap" }}>
+            {topClienteOS && (
+              <div style={{ border: "1px solid #e8c84a", borderRadius: "4px", padding: "8px 16px", minWidth: "160px", background: "#fffbeb" }}>
+                <div style={{ fontSize: "7pt", textTransform: "uppercase", color: "#666" }}>🏆 Cliente com mais OS</div>
+                <div style={{ fontWeight: "bold", fontSize: "10pt" }}>{topClienteOS[1].name}</div>
+                <div style={{ fontSize: "9pt", color: "#555" }}>{formatCurrency(topClienteOS[1].total)}</div>
+              </div>
+            )}
+            {topServico && (
+              <div style={{ border: "1px solid #e8c84a", borderRadius: "4px", padding: "8px 16px", minWidth: "160px", background: "#fffbeb" }}>
+                <div style={{ fontSize: "7pt", textTransform: "uppercase", color: "#666" }}>🔧 Serviço mais pedido</div>
+                <div style={{ fontWeight: "bold", fontSize: "10pt" }}>{topServico[0]}</div>
+                <div style={{ fontSize: "9pt", color: "#555" }}>{topServico[1].qty} un</div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Status breakdown */}
         {Object.keys(statusCount).length > 0 && (
           <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", margin: "4px 0 8px" }}>
@@ -443,6 +602,34 @@ export default async function RelatoriosImprimirPage({
           </div>
         )}
 
+        {/* Top serviços */}
+        {topServicos.length > 0 && (
+          <>
+            {hr()}
+            <div style={{ ...bold, fontSize: "9pt", margin: "8px 0 4px" }}>SERVIÇOS/PRODUTOS MAIS SOLICITADOS</div>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={{ ...th, width: "30px" }}>#</th>
+                  <th style={th}>Descrição</th>
+                  <th style={{ ...th, textAlign: "right" }}>Qtd</th>
+                  <th style={{ ...th, textAlign: "right" }}>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topServicos.map(([desc, { qty, total }], i) => (
+                  <tr key={desc}>
+                    <td style={{ ...td, color: "#666" }}>{i + 1}</td>
+                    <td style={td}>{desc}</td>
+                    <td style={tdRight}>{qty}</td>
+                    <td style={tdRight}>{formatCurrency(total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+
         {hr()}
 
         {/* OS Table */}
@@ -451,48 +638,68 @@ export default async function RelatoriosImprimirPage({
             Nenhuma OS encontrada para este período.
           </p>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th style={th}>Nº</th>
-                <th style={th}>Data</th>
-                <th style={th}>Cliente</th>
-                <th style={th}>Equipamento</th>
-                <th style={th}>Status</th>
-                <th style={{ ...th, textAlign: "right" }}>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {osWithTotals.map((o) => (
-                <tr key={o.id}>
-                  <td style={{ ...td, fontFamily: "monospace", fontWeight: "bold" }}>
-                    NT-{String(o.number).padStart(5, "0")}
+          <>
+            <div style={{ ...bold, fontSize: "9pt", margin: "8px 0 4px" }}>
+              ORDENS DE SERVIÇO ({osCount})
+              {detalhes && <span style={{ fontWeight: "normal", fontSize: "8pt", color: "#666", marginLeft: "8px" }}>— itens detalhados</span>}
+            </div>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  <th style={th}>Nº</th>
+                  <th style={th}>Data</th>
+                  <th style={th}>Cliente</th>
+                  <th style={th}>Equipamento</th>
+                  <th style={th}>Status</th>
+                  <th style={{ ...th, textAlign: "right" }}>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {osWithTotals.flatMap((o) => [
+                  <tr key={o.id}>
+                    <td style={{ ...td, fontFamily: "monospace", fontWeight: "bold" }}>
+                      NT-{String(o.number).padStart(5, "0")}
+                    </td>
+                    <td style={{ ...td, whiteSpace: "nowrap" }}>{fmtDate(o.created_at)}</td>
+                    <td style={{ ...td, maxWidth: "150px" }}>
+                      {(o.erp_customers as any)?.name ?? "—"}
+                    </td>
+                    <td style={{ ...td, maxWidth: "120px", color: "#555" }}>
+                      {o.equipment ?? "—"}
+                    </td>
+                    <td style={td}>
+                      {OS_STATUS_LABELS[o.status as OSStatus] ?? o.status}
+                    </td>
+                    <td style={{ ...tdRight, fontWeight: "bold" }}>
+                      {formatCurrency(o.computed_total)}
+                    </td>
+                  </tr>,
+                  ...(detalhes
+                    ? (o.erp_service_order_items ?? []).map((item: any, idx: number) => (
+                        <tr key={`${o.id}-i-${idx}`} style={{ background: "#fafafa" }}>
+                          <td style={tdItem}>↳</td>
+                          <td style={tdItem} />
+                          <td colSpan={3} style={tdItem}>
+                            {item.description} — {item.quantity}× {formatCurrency(item.unit_price ?? 0)}
+                          </td>
+                          <td style={{ ...tdItem, textAlign: "right" }}>
+                            {formatCurrency((item.quantity ?? 1) * (item.unit_price ?? 0))}
+                          </td>
+                        </tr>
+                      ))
+                    : []),
+                ])}
+                <tr>
+                  <td colSpan={5} style={{ ...td, textAlign: "right", ...bold, borderTop: "2px solid #333" }}>
+                    Total
                   </td>
-                  <td style={{ ...td, whiteSpace: "nowrap" }}>{fmtDate(o.created_at)}</td>
-                  <td style={{ ...td, maxWidth: "150px" }}>
-                    {(o.erp_customers as any)?.name ?? "—"}
-                  </td>
-                  <td style={{ ...td, maxWidth: "120px", color: "#555" }}>
-                    {o.equipment ?? "—"}
-                  </td>
-                  <td style={td}>
-                    {OS_STATUS_LABELS[o.status as OSStatus] ?? o.status}
-                  </td>
-                  <td style={{ ...tdRight, fontWeight: "bold" }}>
-                    {formatCurrency(o.computed_total)}
+                  <td style={{ ...tdRight, ...bold, borderTop: "2px solid #333" }}>
+                    {formatCurrency(totalFaturado)}
                   </td>
                 </tr>
-              ))}
-              <tr>
-                <td colSpan={5} style={{ ...td, textAlign: "right", ...bold, borderTop: "2px solid #333" }}>
-                  Total
-                </td>
-                <td style={{ ...tdRight, ...bold, borderTop: "2px solid #333" }}>
-                  {formatCurrency(totalFaturado)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          </>
         )}
       </div>
     </>
