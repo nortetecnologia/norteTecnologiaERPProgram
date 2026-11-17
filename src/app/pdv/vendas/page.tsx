@@ -142,6 +142,12 @@ export default async function VendasPage({
                     <td className="px-5 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Link
+                          href={`/pdv/${sale.id}/editar`}
+                          className="text-xs px-2.5 py-1 border border-brand-gray-mid text-gray-400 rounded hover:border-gray-400 transition-colors"
+                        >
+                          ✏️ Editar
+                        </Link>
+                        <Link
                           href={`/pdv/${sale.id}/recibo`}
                           className="text-xs px-2.5 py-1 border border-brand-gray-mid text-gray-400 rounded hover:border-gray-400 transition-colors"
                         >

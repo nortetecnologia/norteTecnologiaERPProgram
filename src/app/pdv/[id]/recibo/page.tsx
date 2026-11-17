@@ -33,6 +33,12 @@ export default async function ReciboPage({
   return (
     <div className="min-h-screen bg-white text-black p-6 max-w-sm mx-auto font-mono text-sm">
       <div className="no-print flex flex-wrap gap-2 mb-4">
+        <a
+          href="/pdv/vendas"
+          className="bg-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg"
+        >
+          ← Voltar
+        </a>
         <PrintButton />
         <a
           href="/pdv"
@@ -41,16 +47,10 @@ export default async function ReciboPage({
           Nova venda
         </a>
         <a
-          href="/pdv/vendas"
+          href={`/pdv/${id}/editar`}
           className="bg-gray-100 text-gray-700 text-xs px-3 py-1.5 rounded-lg"
         >
-          Histórico
-        </a>
-        <a
-          href="/dashboard"
-          className="text-gray-400 text-xs px-3 py-1.5"
-        >
-          Dashboard
+          ✏️ Editar venda
         </a>
         <ReciboActions saleId={id} />
       </div>

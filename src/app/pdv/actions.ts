@@ -161,6 +161,96 @@ export async function createSale(prevState: unknown, formData: FormData) {
   redirect(`/pdv/${saleId}/recibo`);
 }
 
+export async function updateSale(saleId: string, _prevState: unknown, formData: FormData) {
+  await requireAuth();
+
+  const customerId = (formData.get("customer_id") as string) || null;
+  const discount = parseFloat(formData.get("discount") as string) || 0;
+  const itemsCount = parseInt(formData.get("items_count") as string) || 0;
+  const paymentsCount = parseInt(formData.get("payments_count") as string) || 0;
+
+  if (itemsCount === 0) return { error: "Adicione ao menos um produto." };
+  if (paymentsCount === 0) return { error: "Informe ao menos uma forma de pagamento." };
+
+  const newItems: SaleItem[] = [];
+  for (let i = 0; i < itemsCount; i++) {
+    const productId = formData.get(`item_product_id_${i}`) as string;
+    const description = (formData.get(`item_description_${i}`) as string)?.trim();
+    const quantity = parseInt(formData.get(`item_quantity_${i}`) as string) || 1;
+    const unitPrice = parseFloat(formData.get(`item_unit_price_${i}`) as string) || 0;
+    if (!description) continue;
+    newItems.push({ product_id: productId, description, quantity, unit_price: unitPrice, subtotal: quantity * unitPrice });
+  }
+
+  const subtotal = newItems.reduce((s, i) => s + i.subtotal, 0);
+  const total = subtotal - discount;
+
+  const newPayments: SalePayment[] = [];
+  for (let i = 0; i < paymentsCount; i++) {
+    const method = formData.get(`payment_method_${i}`) as string;
+    const amount = parseFloat(formData.get(`payment_amount_${i}`) as string) || 0;
+    if (!method || amount <= 0) continue;
+    newPayments.push({ method, amount });
+  }
+
+  const paidTotal = newPayments.reduce((s, p) => s + p.amount, 0);
+  if (Math.abs(paidTotal - total) > 0.01) {
+    return { error: `Valor pago (R$ ${paidTotal.toFixed(2)}) difere do total (R$ ${total.toFixed(2)}).` };
+  }
+
+  const supabase = createAdminClient();
+
+  // Restaura estoque dos itens antigos
+  const { data: oldItems } = await supabase
+    .from("erp_pdv_sale_items")
+    .select("product_id, quantity")
+    .eq("sale_id", saleId);
+
+  if (oldItems) {
+    for (const item of oldItems) {
+      if (!item.product_id) continue;
+      const { data: product } = await supabase.from("products").select("stock").eq("id", item.product_id).single();
+      if (product) {
+        await supabase.from("products").update({ stock: (product.stock ?? 0) + item.quantity }).eq("id", item.product_id);
+      }
+    }
+  }
+
+  // Atualiza a venda
+  const { error: saleError } = await supabase
+    .from("erp_pdv_sales")
+    .update({ customer_id: customerId, subtotal, discount, total })
+    .eq("id", saleId);
+  if (saleError) return { error: saleError.message };
+
+  // Reinsere itens
+  await supabase.from("erp_pdv_sale_items").delete().eq("sale_id", saleId);
+  if (newItems.length > 0) {
+    await supabase.from("erp_pdv_sale_items").insert(newItems.map((i) => ({ ...i, sale_id: saleId })));
+  }
+
+  // Reinsere pagamentos
+  await supabase.from("erp_pdv_sale_payments").delete().eq("sale_id", saleId);
+  if (newPayments.length > 0) {
+    await supabase.from("erp_pdv_sale_payments").insert(newPayments.map((p) => ({ ...p, sale_id: saleId })));
+  }
+
+  // Baixa estoque dos novos itens
+  for (const item of newItems) {
+    if (!item.product_id) continue;
+    await decrementStockSafe(supabase, item.product_id, item.quantity);
+  }
+
+  revalidatePath("/pdv");
+  revalidatePath("/pdv/vendas");
+  revalidatePath(`/pdv/${saleId}/recibo`);
+  revalidatePath("/estoque");
+  revalidateTag("sales");
+  revalidateTag("dashboard");
+  markLocalDataStale();
+  redirect(`/pdv/${saleId}/recibo`);
+}
+
 export async function cancelSale(saleId: string): Promise<{ error?: string }> {
   await requireAuth();
 
