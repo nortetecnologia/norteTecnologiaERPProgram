@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDate, formatOSNumber } from "@/lib/utils";
 import { OS_STATUS_LABELS, OS_STATUS_COLORS, type ServiceOrder } from "@/types";
 import { requireAuth } from "@/lib/auth";
-import { getCachedServiceOrders } from "@/lib/queries";
+import { getCachedServiceOrders, getCachedCustomers } from "@/lib/queries";
 
 export default async function OSPage({
   searchParams,
@@ -14,15 +14,13 @@ export default async function OSPage({
   await requireAuth();
   const { q, status, cliente, de, ate } = await searchParams;
 
-  const supabase = createAdminClient();
-  const [{ data: customersRaw }] = await Promise.all([
-    supabase.from("erp_customers").select("id, name").order("name"),
-  ]);
-  const customers = customersRaw ?? [];
+  const customersRaw = await getCachedCustomers();
+  const customers = (customersRaw as any[]).map((c: any) => ({ id: c.id, name: c.name }));
 
   let orders: ServiceOrder[];
   const hasAdvancedFilter = q || cliente || de || ate;
   if (hasAdvancedFilter) {
+    const supabase = createAdminClient();
     let query = supabase
       .from("erp_service_orders")
       .select("*, erp_customers(name, phone)")

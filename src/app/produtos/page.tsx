@@ -1,6 +1,6 @@
 import AppLayout from "@/components/layout/AppLayout";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/auth";
+import { getCachedProductsWithDetails } from "@/lib/queries";
 import { ProdutosClient, type ProductData, type CategoryOption } from "./ProdutosClient";
 
 export default async function ProdutosPage({
@@ -10,23 +10,10 @@ export default async function ProdutosPage({
 }) {
   await requireAuth();
   const { editId } = await searchParams;
-  const supabase = createAdminClient();
 
-  const [{ data: rawProducts }, { data: rawCategories }] = await Promise.all([
-    supabase
-      .from("products")
-      .select(
-        "id, name, description, brand, sku, barcode, internal_code, price, price_max, stock, category_id, subcategory_id, is_active, product_type, product_images(url, is_primary), categories(name), subcategories(name)"
-      )
-      .order("name")
-      .limit(500),
-    supabase
-      .from("categories")
-      .select("id, name, subcategories(id, name)")
-      .order("name"),
-  ]);
+  const { products: rawProducts, categories: rawCategories } = await getCachedProductsWithDetails();
 
-  const products: ProductData[] = (rawProducts ?? []).map((p: any) => {
+  const products: ProductData[] = rawProducts.map((p: any) => {
     const primaryImg =
       p.product_images?.find((i: any) => i.is_primary)?.url ??
       p.product_images?.[0]?.url ??
@@ -52,7 +39,7 @@ export default async function ProdutosPage({
     };
   });
 
-  const categories: CategoryOption[] = (rawCategories ?? []).map((c: any) => ({
+  const categories: CategoryOption[] = rawCategories.map((c: any) => ({
     id: c.id,
     name: c.name,
     subcategories: (c.subcategories ?? []).map((s: any) => ({ id: s.id, name: s.name })),

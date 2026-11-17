@@ -2,7 +2,7 @@ import { unstable_cache } from "next/cache";
 import { createAdminClient } from "./supabase/admin";
 import { shouldUseLocalData, readOfflineData } from "./offline";
 
-const TTL = 60;
+const TTL = 300;
 
 export const getCachedDashboard = (todayISO: string) => {
   if (shouldUseLocalData()) {
@@ -193,3 +193,115 @@ export const getCachedStock = () => {
     { revalidate: TTL, tags: ["products", "stock-movements"] }
   )();
 };
+
+// ── PDV ───────────────────────────────────────────────────────────────────────
+
+export const getCachedPDVProducts = () => {
+  if (shouldUseLocalData()) {
+    const d = readOfflineData();
+    const imgs = (d["product_images"] ?? []) as any[];
+    const rows = (d["products"] ?? []) as any[];
+    return Promise.resolve(
+      rows
+        .filter((p: any) => p.is_active)
+        .sort((a: any, b: any) => a.name?.localeCompare(b.name))
+        .map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          price: p.price,
+          sku: p.sku,
+          barcode: p.barcode,
+          stock: p.stock,
+          product_images: imgs.filter((i) => i.product_id === p.id),
+        }))
+    );
+  }
+  return unstable_cache(
+    async () => {
+      const supabase = createAdminClient();
+      const { data } = await supabase
+        .from("products")
+        .select("id, name, price, sku, barcode, stock, product_images(url, is_primary)")
+        .eq("is_active", true)
+        .order("name");
+      return data ?? [];
+    },
+    ["pdv-products"],
+    { revalidate: TTL, tags: ["products"] }
+  )();
+};
+
+export const getCachedPaymentMethods = () =>
+  unstable_cache(
+    async () => {
+      const supabase = createAdminClient();
+      const { data } = await supabase
+        .from("payment_methods")
+        .select("name, label")
+        .eq("is_active", true)
+        .order("position");
+      return data ?? [];
+    },
+    ["payment-methods"],
+    { revalidate: 600, tags: ["payment-methods"] }
+  )();
+
+export const getCachedActiveEmployees = () =>
+  unstable_cache(
+    async () => {
+      const supabase = createAdminClient();
+      const { data } = await supabase
+        .from("erp_employees")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name");
+      return data ?? [];
+    },
+    ["active-employees"],
+    { revalidate: TTL, tags: ["employees"] }
+  )();
+
+// ── Funcionários ──────────────────────────────────────────────────────────────
+
+export const getCachedEmployeesWithRoles = () =>
+  unstable_cache(
+    async () => {
+      const supabase = createAdminClient();
+      const [{ data: employees }, { data: roles }] = await Promise.all([
+        supabase
+          .from("erp_employees")
+          .select("id, name, phone, email, notes, is_active, erp_employee_roles(role_id, erp_roles(id, name, description, is_active))")
+          .order("name"),
+        supabase
+          .from("erp_roles")
+          .select("id, name, description, is_active")
+          .order("name"),
+      ]);
+      return { employees: employees ?? [], roles: roles ?? [] };
+    },
+    ["employees-with-roles"],
+    { revalidate: TTL, tags: ["employees"] }
+  )();
+
+// ── Produtos (tela de gestão) ─────────────────────────────────────────────────
+
+export const getCachedProductsWithDetails = () =>
+  unstable_cache(
+    async () => {
+      const supabase = createAdminClient();
+      const [{ data: products }, { data: categories }] = await Promise.all([
+        supabase
+          .from("products")
+          .select("id, name, description, brand, sku, barcode, internal_code, price, price_max, stock, category_id, subcategory_id, is_active, product_type, product_images(url, is_primary), categories(name), subcategories(name)")
+          .order("name")
+          .limit(500),
+        supabase
+          .from("categories")
+          .select("id, name, subcategories(id, name)")
+          .order("name"),
+      ]);
+      return { products: products ?? [], categories: categories ?? [] };
+    },
+    ["products-with-details"],
+    { revalidate: TTL, tags: ["products"] }
+  )();

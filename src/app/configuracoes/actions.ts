@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth";
 import { markLocalDataStale } from "@/lib/offline";
@@ -63,6 +63,7 @@ export async function saveSettings(prevState: unknown, formData: FormData) {
 
   revalidatePath("/configuracoes");
   revalidatePath("/pdv");
+  revalidateTag("payment-methods");
   markLocalDataStale();
   return { success: true };
 }

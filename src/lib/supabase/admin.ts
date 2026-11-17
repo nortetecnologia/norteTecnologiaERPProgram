@@ -1,7 +1,11 @@
 import "./ws-polyfill";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-export function createAdminClient() {
+let _client: SupabaseClient | null = null;
+
+export function createAdminClient(): SupabaseClient {
+  if (_client) return _client;
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SECRET_KEY;
 
@@ -9,9 +13,10 @@ export function createAdminClient() {
     throw new Error("Supabase admin credentials not configured.");
   }
 
-  return createClient(url, key, {
+  _client = createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+  return _client;
 }
 
 export function logAdminError(context: string, error: unknown) {

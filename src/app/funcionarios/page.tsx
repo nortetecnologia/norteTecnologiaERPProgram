@@ -1,31 +1,21 @@
 import AppLayout from "@/components/layout/AppLayout";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/auth";
+import { getCachedEmployeesWithRoles } from "@/lib/queries";
 import { FuncionariosClient, type EmployeeData, type RoleData } from "./FuncionariosClient";
 
 export default async function FuncionariosPage() {
   await requireAuth();
-  const supabase = createAdminClient();
 
-  const [{ data: rawEmployees }, { data: rawRoles }] = await Promise.all([
-    supabase
-      .from("erp_employees")
-      .select("id, name, phone, email, notes, is_active, erp_employee_roles(role_id, erp_roles(id, name, description, is_active))")
-      .order("name"),
-    supabase
-      .from("erp_roles")
-      .select("id, name, description, is_active")
-      .order("name"),
-  ]);
+  const { employees: rawEmployees, roles: rawRoles } = await getCachedEmployeesWithRoles();
 
-  const roles: RoleData[] = (rawRoles ?? []).map((r: any) => ({
+  const roles: RoleData[] = rawRoles.map((r: any) => ({
     id: r.id,
     name: r.name,
     description: r.description ?? null,
     is_active: r.is_active ?? true,
   }));
 
-  const employees: EmployeeData[] = (rawEmployees ?? []).map((e: any) => ({
+  const employees: EmployeeData[] = rawEmployees.map((e: any) => ({
     id: e.id,
     name: e.name,
     phone: e.phone ?? null,

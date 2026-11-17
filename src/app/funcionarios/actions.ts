@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/auth";
 
@@ -20,6 +20,7 @@ export async function createCargo(formData: FormData): Promise<{ error?: string 
   if (error) return { error: error.message };
 
   revalidatePath("/funcionarios");
+  revalidateTag("employees");
   return {};
 }
 
@@ -37,6 +38,7 @@ export async function updateCargo(id: string, formData: FormData): Promise<{ err
   if (error) return { error: error.message };
 
   revalidatePath("/funcionarios");
+  revalidateTag("employees");
   return {};
 }
 
@@ -46,6 +48,7 @@ export async function deleteCargo(id: string): Promise<{ error?: string }> {
   const { error } = await supabase.from("erp_roles").delete().eq("id", id);
   if (error) return { error: error.message };
   revalidatePath("/funcionarios");
+  revalidateTag("employees");
   return {};
 }
 
@@ -75,6 +78,7 @@ export async function createFuncionario(formData: FormData): Promise<{ error?: s
   }
 
   revalidatePath("/funcionarios");
+  revalidateTag("employees");
   return {};
 }
 
@@ -105,6 +109,7 @@ export async function updateFuncionario(id: string, formData: FormData): Promise
   }
 
   revalidatePath("/funcionarios");
+  revalidateTag("employees");
   return {};
 }
 
@@ -114,6 +119,7 @@ export async function deleteFuncionario(id: string): Promise<{ error?: string }>
   const { error } = await supabase.from("erp_employees").delete().eq("id", id);
   if (error) return { error: error.message };
   revalidatePath("/funcionarios");
+  revalidateTag("employees");
   return {};
 }
 
@@ -126,5 +132,6 @@ export async function toggleFuncionarioAtivo(id: string, is_active: boolean): Pr
   }).eq("id", id);
   if (error) return { error: error.message };
   revalidatePath("/funcionarios");
+  revalidateTag("employees");
   return {};
 }

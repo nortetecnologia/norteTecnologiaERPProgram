@@ -39,6 +39,7 @@ export async function startNextServer(port: number): Promise<void> {
     serverProcess = fork(serverJs, [], {
       env,
       silent: true,
+      execArgv: ["--max-old-space-size=1536"],
     });
 
     serverProcess.stdout?.on("data", (d: Buffer) => {
