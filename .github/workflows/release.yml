@@ -18,6 +18,16 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Definir versao a partir da tag
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = $tag -replace '^v', ''
+          $content = Get-Content package.json -Raw
+          $content = $content -replace '"version": "[^"]*"', "`"version`": `"$version`""
+          [System.IO.File]::WriteAllText("package.json", $content, [System.Text.UTF8Encoding]::new($false))
+          Write-Host "Versao definida: $version"
+
       - name: Instalar dependencias
         run: npm install
 
