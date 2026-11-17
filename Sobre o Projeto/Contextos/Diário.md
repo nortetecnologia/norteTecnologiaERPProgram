@@ -10,7 +10,7 @@
 
 - **Estágio:** Sistema em produção. Todos os módulos da Fase 1 implementados e funcionando.
 - **Distribuição:** App desktop Windows (instalador `.exe` via GitHub Releases, auto-update com `electron-updater`)
-- **Última atividade:** 2026-11-10 — Correção de nomes de colunas (produtos/PDV), configurações completas com formas de pagamento, validação CPF/CNPJ.
+- **Última atividade:** 2026-11-17 — Mecanismo de reset de senha (Esqueci a senha).
 - **Situação geral:** Sistema operacional. Migrations aplicadas no Supabase. Cloudinary integrado. Upload de imagens nas OS funcionando. Autenticação por `app_metadata.erp_role`. Banco de dados compartilhado com o site — colunas corretas: `is_active`, `stock`. Imagens em tabela separada `product_images(id, product_id, url, alt, is_primary, position)`.
 - **Próxima etapa:** Fase 2 — Roles diferenciados no dashboard (admin vs. operador), relatórios avançados, NF-e.
 
@@ -18,15 +18,30 @@
 
 ## 2. Última atualização
 
-- **Data:** 2026-11-16
-- **Atividade:** Feat — emissor/responsável na OS + vendedor/prestador no PDV.
-- **Commits:** pendente (sprint atual)
-- **Resultado:** Dois selects de funcionário no formulário de nova OS (emissor + responsável); dois selects no PDV (vendedor + prestador de serviço). Colunas FK salvas nas tabelas. TypeScript sem erros.
-- **Situação:** Aguarda aplicação da migration `erp_006` no Supabase.
+- **Data:** 2026-11-17
+- **Atividade:** Feat — mecanismo de reset de senha.
+- **Commit:** `434d7a9`
+- **Resultado:** Fluxo completo de recuperação de senha: `/esqueci-senha` (formulário + validação de e-mail + role ERP), `/redefinir-senha` (troca PKCE + atualização de senha + logout), link "Esqueci a senha" no login com banner de sucesso.
+- **Situação:** Requer configuração manual no Supabase Auth → URL Configuration (Site URL + Redirect URLs). Ver `Segurança.md`.
 
 ---
 
 ## 3. Implementações concluídas
+
+### 2026-11-17 — Feat: mecanismo de reset de senha
+
+- **Objetivo:** Permitir que usuários com acesso ao ERP redefinam sua senha sem intervenção manual do administrador.
+- **Implementação:**
+  1. **`src/app/esqueci-senha/actions.ts`**: valida e-mail com `admin.auth.admin.listUsers()` + `extractRole()`; chama `resetPasswordForEmail(email, { redirectTo: "http://localhost:3721/redefinir-senha" })`.
+  2. **`src/app/esqueci-senha/page.tsx`**: formulário de e-mail + estado de sucesso com instruções.
+  3. **`src/app/redefinir-senha/actions.ts`**: valida senha (≥ 6 chars, confirmação) **antes** de consumir o `code`; `exchangeCodeForSession(code)` → `updateUser({ password })` → `signOut()` → `/login?reset=done`.
+  4. **`src/app/redefinir-senha/page.tsx`**: exibe formulário de nova senha (com `code` oculto) ou estado de link inválido.
+  5. **`src/app/login/page.tsx`**: adicionado link "Esqueci a senha", `StatusBanner` com suporte a banner verde de sucesso (`reset=done`).
+  6. **`src/middleware.ts`**: `isPublicAuthPage` libera `/esqueci-senha` e `/redefinir-senha` sem autenticação.
+- **Configuração obrigatória no Supabase:** Authentication → URL Configuration → Site URL: `http://localhost:3721`; Redirect URLs: `http://localhost:3721/**`.
+- **Commit:** `434d7a9`
+
+---
 
 ### 2026-11-16 — Feat: emissor/responsável na OS e vendedor/prestador no PDV
 

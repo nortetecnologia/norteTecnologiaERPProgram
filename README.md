@@ -15,7 +15,7 @@ Compartilha o mesmo banco de dados Supabase do site de e-commerce, permitindo qu
 | Banco de Dados | Supabase (PostgreSQL) — compartilhado com o site |
 | Autenticação   | Supabase Auth                   |
 | Imagens        | Cloudinary                      |
-| Hospedagem     | Vercel                          |
+| Distribuição   | App Desktop Windows (Electron)  |
 
 ---
 
@@ -70,6 +70,8 @@ src/
 │   ├── page.tsx            # Redireciona para /dashboard ou /login
 │   ├── globals.css         # Design tokens e estilos globais
 │   ├── login/              # Autenticação
+│   ├── esqueci-senha/      # Recuperação de senha (formulário + Server Action)
+│   ├── redefinir-senha/    # Redefinição de senha via link PKCE
 │   ├── dashboard/          # Tela inicial com métricas e ações rápidas
 │   ├── clientes/           # Módulo de clientes
 │   ├── produtos/           # Módulo de produtos/serviços
@@ -90,7 +92,7 @@ src/
 │   ├── rateLimit.ts        # Rate limiter sliding window por IP
 │   └── utils.ts            # Funções utilitárias
 │
-├── middleware.ts            # Proteção de rotas (exclui arquivos estáticos e /login)
+├── middleware.ts            # Proteção de rotas (exclui estáticos, /login, /esqueci-senha, /redefinir-senha)
 │
 └── types/
     └── index.ts            # Tipos TypeScript do domínio ERP

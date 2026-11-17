@@ -1,6 +1,6 @@
 # Mapa de Rotas — Norte Tecnologia ERP
 
-Todas as rotas (exceto `/login`) exigem autenticação via Supabase Auth.
+Todas as rotas (exceto `/login`, `/esqueci-senha` e `/redefinir-senha`) exigem autenticação via Supabase Auth.
 O middleware redireciona para `/login` qualquer acesso não autenticado.
 
 ---
@@ -10,6 +10,8 @@ O middleware redireciona para `/login` qualquer acesso não autenticado.
 | Rota | Descrição |
 |------|-----------|
 | `/login` | Tela de autenticação |
+| `/esqueci-senha` | Formulário de recuperação de senha por e-mail |
+| `/redefinir-senha` | Redefinição de senha via código PKCE (recebido por e-mail) |
 
 ---
 
@@ -46,6 +48,8 @@ O middleware redireciona para `/login` qualquer acesso não autenticado.
 |--------|------|-----------|
 | `loginAction` | `/login/actions.ts` | Autenticação com rate limiting |
 | `logoutAction` | `/login/actions.ts` | Encerramento de sessão |
+| `requestPasswordResetAction` | `/esqueci-senha/actions.ts` | Valida e-mail, verifica role ERP, dispara e-mail de reset via Supabase |
+| `updatePasswordAction` | `/redefinir-senha/actions.ts` | Valida senha, troca code por sessão (PKCE), atualiza senha e desloga |
 | `createCustomer` | `/clientes/actions.ts` | Criar cliente |
 | `updateCustomer` | `/clientes/actions.ts` | Editar cliente |
 | `deleteCustomer` | `/clientes/actions.ts` | Excluir cliente |
@@ -69,7 +73,7 @@ O middleware redireciona para `/login` qualquer acesso não autenticado.
 
 ## Middleware
 
-O middleware (`src/middleware.ts`) protege todas as rotas exceto `/login` e arquivos estáticos:
+O middleware (`src/middleware.ts`) protege todas as rotas exceto `/login`, `/esqueci-senha`, `/redefinir-senha` e arquivos estáticos:
 
 ```
 matcher: ["/((?!_next/static|_next/image|favicon\\.ico|icons|manifest\\.json|sw\\.js|[^/]+\\.[a-zA-Z]+$).*)"]
