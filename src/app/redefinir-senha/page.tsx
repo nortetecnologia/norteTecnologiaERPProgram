@@ -11,9 +11,9 @@ const ERROR_MESSAGES: Record<string, string> = {
 export default async function RedefinirSenhaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ code?: string; error?: string }>;
+  searchParams: Promise<{ code?: string; rid?: string; error?: string }>;
 }) {
-  const { code, error } = await searchParams;
+  const { code, rid, error } = await searchParams;
 
   const inputCls =
     "w-full bg-brand-black border border-brand-gray-mid rounded-lg px-4 py-3 text-white text-sm placeholder-[#4b5563] focus:outline-none focus:border-brand-yellow focus:ring-1 focus:ring-brand-yellow transition-colors";
@@ -27,7 +27,7 @@ export default async function RedefinirSenhaPage({
             <img src="/logo.png" alt="Norte Tecnologia" className="h-20 w-auto object-contain" />
           </div>
 
-          {!code ? (
+          {!code || !rid ? (
             /* ── Link inválido ── */
             <div className="text-center">
               <div className="text-4xl mb-4">⚠️</div>
@@ -57,6 +57,7 @@ export default async function RedefinirSenhaPage({
 
               <form action={updatePasswordAction} className="space-y-5">
                 <input type="hidden" name="code" value={code} />
+                <input type="hidden" name="rid" value={rid} />
 
                 <div>
                   <label className="block text-sm font-medium text-[#d1d5db] mb-1.5">
