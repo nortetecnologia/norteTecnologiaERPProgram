@@ -37,7 +37,7 @@ export default async function PDVEditPage({ params }: { params: Promise<{ id: st
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-white">Editar Venda #{sale.sale_number}</h1>
           <a
-            href={`/pdv/${id}/recibo`}
+            href="/pdv/vendas"
             className="text-sm px-4 py-2 border border-brand-gray-mid text-gray-500 rounded-lg hover:border-gray-400 transition-colors"
           >
             ← Voltar
