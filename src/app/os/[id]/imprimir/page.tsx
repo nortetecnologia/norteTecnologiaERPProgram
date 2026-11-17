@@ -16,15 +16,15 @@ interface StoreSettings {
   cnpj?: string;
 }
 
-function hr() {
-  return <div style={{ borderTop: "1px solid #000", margin: "4px 0" }} />;
+function hr(thick = false) {
+  return <div style={{ borderTop: thick ? "2px solid #000" : "1px solid #000", margin: "5px 0" }} />;
 }
 
 function field(label: string, value?: string | null, style?: CSSProperties) {
   return (
     <span style={style}>
-      <span style={{ fontWeight: "bold" }}>{label}</span>{" "}
-      <span>{value ?? ""}</span>
+      <span style={{ fontWeight: "900" }}>{label}</span>{" "}
+      <span style={{ fontWeight: "600" }}>{value ?? ""}</span>
     </span>
   );
 }
@@ -77,17 +77,18 @@ export default async function OSPrintPage({
 
   const page: CSSProperties = {
     fontFamily: "'Courier New', Courier, monospace",
-    fontSize: "11pt",
+    fontSize: "12pt",
+    fontWeight: "600",
     color: "#000",
     background: "#fff",
     maxWidth: "210mm",
     margin: "0 auto",
     padding: "10mm",
-    lineHeight: "1.4",
+    lineHeight: "1.5",
   };
 
-  const bold: CSSProperties = { fontWeight: "bold" };
-  const small: CSSProperties = { fontSize: "9pt" };
+  const bold: CSSProperties = { fontWeight: "900" };
+  const small: CSSProperties = { fontSize: "10pt", fontWeight: "600" };
 
   return (
     <>
@@ -131,9 +132,9 @@ export default async function OSPrintPage({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.png" alt="Logo" style={{ height: "60px", width: "auto" }} />
             <div>
-              <div style={{ fontSize: "15pt", fontWeight: "900", letterSpacing: "1px" }}>{storeName.toUpperCase()}</div>
-              {storePhone && <div style={small}>{storePhone}</div>}
-              {storeAddress && <div style={small}>{storeAddress}</div>}
+              <div style={{ fontSize: "16pt", fontWeight: "900", letterSpacing: "1px" }}>{storeName.toUpperCase()}</div>
+              {storePhone && <div style={{ ...small, fontWeight: "700" }}>{storePhone}</div>}
+              {storeAddress && <div style={{ ...small, fontWeight: "700" }}>{storeAddress}</div>}
             </div>
           </div>
           {cnpj && (
@@ -143,15 +144,15 @@ export default async function OSPrintPage({
           )}
         </div>
 
-        {hr()}
+        {hr(true)}
 
         {/* ── Número da OS + Data ───────────────────────────── */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "4px 0" }}>
-          <div style={{ fontSize: "13pt", ...bold }}>ORDEM DE SERVICO {osNum}</div>
-          <div style={small}>Hora: {hora}&nbsp;&nbsp;&nbsp;Data: {data}</div>
+          <div style={{ fontSize: "14pt", ...bold }}>ORDEM DE SERVICO {osNum}</div>
+          <div style={{ ...small, fontWeight: "700" }}>Hora: {hora}&nbsp;&nbsp;&nbsp;Data: {data}</div>
         </div>
 
-        {hr()}
+        {hr(true)}
 
         {/* ── Dados do cliente ─────────────────────────────── */}
         <table style={{ width: "100%", borderCollapse: "collapse", ...small, margin: "4px 0" }}>
@@ -218,26 +219,26 @@ export default async function OSPrintPage({
         {/* ── Tabela de itens ──────────────────────────────── */}
         <table style={{ width: "100%", borderCollapse: "collapse", ...small }}>
           <thead>
-            <tr style={{ borderBottom: "1px solid #000" }}>
-              <th style={{ textAlign: "left", padding: "2px 4px" }}>Referencia</th>
-              <th style={{ textAlign: "left", padding: "2px 4px" }}>Descrição do Item</th>
-              <th style={{ textAlign: "center", padding: "2px 4px" }}>uni</th>
+            <tr style={{ borderBottom: "2px solid #000" }}>
+              <th style={{ textAlign: "left", padding: "3px 4px", fontWeight: "900" }}>Referencia</th>
+              <th style={{ textAlign: "left", padding: "3px 4px", fontWeight: "900" }}>Descrição do Item</th>
+              <th style={{ textAlign: "center", padding: "3px 4px", fontWeight: "900" }}>Uni</th>
               {!hideValues && (
                 <>
-                  <th style={{ textAlign: "right", padding: "2px 4px" }}>Valor</th>
-                  <th style={{ textAlign: "right", padding: "2px 4px" }}>Quantia</th>
-                  <th style={{ textAlign: "right", padding: "2px 4px" }}>Desc.</th>
-                  <th style={{ textAlign: "right", padding: "2px 4px" }}>Valor Total</th>
+                  <th style={{ textAlign: "right", padding: "3px 4px", fontWeight: "900" }}>Valor</th>
+                  <th style={{ textAlign: "right", padding: "3px 4px", fontWeight: "900" }}>Qtd</th>
+                  <th style={{ textAlign: "right", padding: "3px 4px", fontWeight: "900" }}>Desc.</th>
+                  <th style={{ textAlign: "right", padding: "3px 4px", fontWeight: "900" }}>Total</th>
                 </>
               )}
               {hideValues && (
-                <th style={{ textAlign: "right", padding: "2px 4px" }}>Qtd</th>
+                <th style={{ textAlign: "right", padding: "3px 4px", fontWeight: "900" }}>Qtd</th>
               )}
             </tr>
           </thead>
           <tbody>
             {items.map((item) => (
-              <tr key={item.id} style={{ borderBottom: "1px solid #ccc" }}>
+              <tr key={item.id} style={{ borderBottom: "1px solid #666" }}>
                 <td style={{ padding: "2px 4px" }}>{(item.products as any)?.sku ?? ""}</td>
                 <td style={{ padding: "2px 4px" }}>{item.description}</td>
                 <td style={{ textAlign: "center", padding: "2px 4px" }}>UNI</td>
@@ -273,39 +274,38 @@ export default async function OSPrintPage({
             <div>{field("Situação Atual:", OS_STATUS_LABELS[os.status].toUpperCase())}</div>
             <div>
               {field("Entrega:", os.estimated_at ? formatDate(os.estimated_at) : "")}
-              {" - : "}
             </div>
             <div>{field("Condições de Pagamento:", "")}</div>
           </div>
 
           {/* Coluna direita — totais */}
           {!hideValues && (
-            <div style={{ textAlign: "right", minWidth: "200px" }}>
+            <div style={{ textAlign: "right", minWidth: "200px", fontWeight: "700" }}>
               <div>
                 VALOR PRODUTOS:{" "}
-                <span style={{ display: "inline-block", minWidth: "70px", textAlign: "right" }}>
+                <span style={{ display: "inline-block", minWidth: "80px", textAlign: "right" }}>
                   {itemsTotal > 0 ? itemsTotal.toFixed(2).replace(".", ",") : ""}
                 </span>
               </div>
               <div>
                 VALOR SERVICOS:{" "}
-                <span style={{ display: "inline-block", minWidth: "70px", textAlign: "right" }}>
+                <span style={{ display: "inline-block", minWidth: "80px", textAlign: "right" }}>
                   {laborCost > 0 ? laborCost.toFixed(2).replace(".", ",") : ""}
                 </span>
               </div>
               <div>
                 DESLOCAMENTO :{" "}
-                <span style={{ display: "inline-block", minWidth: "70px", textAlign: "right" }}></span>
+                <span style={{ display: "inline-block", minWidth: "80px", textAlign: "right" }}></span>
               </div>
               <div>
                 DESCONTO :{" "}
-                <span style={{ display: "inline-block", minWidth: "70px", textAlign: "right" }}>
+                <span style={{ display: "inline-block", minWidth: "80px", textAlign: "right" }}>
                   {discount > 0 ? discount.toFixed(2).replace(".", ",") : ""}
                 </span>
               </div>
-              <div style={bold}>
+              <div style={{ ...bold, fontSize: "12pt", borderTop: "2px solid #000", marginTop: "3px", paddingTop: "3px" }}>
                 VALOR TOTAL :{" "}
-                <span style={{ display: "inline-block", minWidth: "70px", textAlign: "right" }}>
+                <span style={{ display: "inline-block", minWidth: "80px", textAlign: "right" }}>
                   {total.toFixed(2).replace(".", ",")}
                 </span>
               </div>
@@ -316,12 +316,12 @@ export default async function OSPrintPage({
         {hr()}
 
         {/* ── Aviso + Assinatura ───────────────────────────── */}
-        <div style={{ ...small, marginTop: "6px" }}>
+        <div style={{ ...small, fontWeight: "700", marginTop: "6px" }}>
           ESTE DOCUMENTO NÃO VALE COMO RECIBO DE PAGAMENTO
         </div>
 
-        <div style={{ marginTop: "20px", ...small }}>
-          Visto_________________________________
+        <div style={{ marginTop: "24px", ...small, fontWeight: "700" }}>
+          Visto_______________________________________________
         </div>
 
       </div>

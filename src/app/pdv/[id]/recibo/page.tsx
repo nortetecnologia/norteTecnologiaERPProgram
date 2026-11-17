@@ -25,7 +25,7 @@ function fmtDateTime(iso: string) {
 }
 
 function Sep() {
-  return <div style={{ borderTop: "1px dashed #999", margin: "8px 0" }} />;
+  return <div style={{ borderTop: "1.5px dashed #000", margin: "8px 0" }} />;
 }
 
 export default async function ReciboPage({
@@ -77,7 +77,8 @@ export default async function ReciboPage({
           width: 320px;
           padding: 20px 18px 24px;
           font-family: 'Courier New', Courier, monospace;
-          font-size: 11px;
+          font-size: 12px;
+          font-weight: 600;
           color: #000;
           box-shadow: 0 2px 16px rgba(0,0,0,0.15);
         }
@@ -124,18 +125,18 @@ export default async function ReciboPage({
               {storeName.toUpperCase()}
             </div>
             {storeAddress && (
-              <div style={{ fontSize: "9px", color: "#555", marginTop: "2px" }}>{storeAddress}</div>
+              <div style={{ fontSize: "10px", color: "#000", fontWeight: "600", marginTop: "2px" }}>{storeAddress}</div>
             )}
             {storePhone && (
-              <div style={{ fontSize: "9px", color: "#555" }}>Tel: {storePhone}</div>
+              <div style={{ fontSize: "10px", color: "#000", fontWeight: "600" }}>Tel: {storePhone}</div>
             )}
           </div>
 
-          <div style={{ textAlign: "center", letterSpacing: "3px", fontSize: "9px", color: "#888", marginBottom: "6px" }}>
+          <div style={{ textAlign: "center", letterSpacing: "3px", fontSize: "10px", color: "#000", marginBottom: "6px" }}>
             * * * * * * * * * * * * * *
           </div>
 
-          <div style={{ textAlign: "center", fontWeight: "bold", fontSize: "12px", letterSpacing: "1px", marginBottom: "4px" }}>
+          <div style={{ textAlign: "center", fontWeight: "900", fontSize: "13px", letterSpacing: "1px", marginBottom: "4px" }}>
             RECIBO DE VENDA
           </div>
 
@@ -143,30 +144,30 @@ export default async function ReciboPage({
 
           {/* Sale number + date */}
           <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ fontWeight: "bold" }}>Nº {String(sale.sale_number).padStart(6, "0")}</span>
-            <span style={{ color: "#555" }}>{fmtDateTime(sale.created_at)}</span>
+            <span style={{ fontWeight: "900" }}>Nº {String(sale.sale_number).padStart(6, "0")}</span>
+            <span style={{ color: "#000" }}>{fmtDateTime(sale.created_at)}</span>
           </div>
 
           {/* Customer */}
           {(sale.erp_customers as any)?.name && (
             <div style={{ marginTop: "4px" }}>
-              <span style={{ color: "#555" }}>Cliente: </span>
-              <span style={{ fontWeight: "bold" }}>{(sale.erp_customers as any).name}</span>
+              <span style={{ fontWeight: "700" }}>Cliente: </span>
+              <span style={{ fontWeight: "900" }}>{(sale.erp_customers as any).name}</span>
             </div>
           )}
 
           {/* Seller */}
           {sellerName && (
             <div style={{ marginTop: "2px" }}>
-              <span style={{ color: "#555" }}>Vendedor: </span>
-              <span style={{ fontWeight: "bold" }}>{sellerName}</span>
+              <span style={{ fontWeight: "700" }}>Vendedor: </span>
+              <span style={{ fontWeight: "900" }}>{sellerName}</span>
             </div>
           )}
 
           <Sep />
 
           {/* Items header */}
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "#777", marginBottom: "4px", textTransform: "uppercase" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "#000", fontWeight: "900", marginBottom: "4px", textTransform: "uppercase" }}>
             <span>Descrição</span>
             <span>Valor</span>
           </div>
@@ -175,11 +176,11 @@ export default async function ReciboPage({
           {items.map((item) => (
             <div key={item.id} style={{ marginBottom: "5px" }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ flex: 1, marginRight: "8px", wordBreak: "break-word" }}>{item.description}</span>
-                <span style={{ flexShrink: 0 }}>{formatCurrency(item.subtotal)}</span>
+                <span style={{ flex: 1, marginRight: "8px", wordBreak: "break-word", fontWeight: "700" }}>{item.description}</span>
+                <span style={{ flexShrink: 0, fontWeight: "900" }}>{formatCurrency(item.subtotal)}</span>
               </div>
               {item.quantity > 1 && (
-                <div style={{ color: "#777", fontSize: "10px", paddingLeft: "8px" }}>
+                <div style={{ color: "#000", fontSize: "11px", paddingLeft: "8px" }}>
                   {item.quantity} × {formatCurrency(item.unit_price)}
                 </div>
               )}
@@ -203,7 +204,7 @@ export default async function ReciboPage({
           )}
 
           {/* Total */}
-          <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "900", fontSize: "15px", marginTop: "4px", paddingTop: "4px", borderTop: "2px solid #000" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "900", fontSize: "16px", marginTop: "4px", paddingTop: "5px", borderTop: "3px solid #000" }}>
             <span>TOTAL</span>
             <span>{formatCurrency(sale.total)}</span>
           </div>
@@ -211,16 +212,16 @@ export default async function ReciboPage({
           <Sep />
 
           {/* Payments */}
-          <div style={{ marginBottom: "4px", fontSize: "9px", color: "#777", textTransform: "uppercase" }}>Pagamento</div>
+          <div style={{ marginBottom: "4px", fontSize: "10px", color: "#000", fontWeight: "900", textTransform: "uppercase" }}>Pagamento</div>
           {payments.map((p) => (
-            <div key={p.id} style={{ display: "flex", justifyContent: "space-between" }}>
+            <div key={p.id} style={{ display: "flex", justifyContent: "space-between", fontWeight: "700" }}>
               <span>{PAYMENT_LABELS[p.method] ?? p.method}</span>
               <span>{formatCurrency(p.amount)}</span>
             </div>
           ))}
 
           {change > 0.001 && (
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px", fontWeight: "bold" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px", fontWeight: "900" }}>
               <span>Troco</span>
               <span>{formatCurrency(change)}</span>
             </div>
@@ -230,15 +231,15 @@ export default async function ReciboPage({
 
           {/* Footer */}
           <div style={{ textAlign: "center", marginTop: "8px" }}>
-            <div style={{ fontWeight: "bold", fontSize: "12px", letterSpacing: "1px" }}>
+            <div style={{ fontWeight: "900", fontSize: "14px", letterSpacing: "1px" }}>
               OBRIGADO!
             </div>
-            <div style={{ color: "#777", fontSize: "9px", marginTop: "2px" }}>
+            <div style={{ color: "#000", fontSize: "10px", fontWeight: "600", marginTop: "2px" }}>
               Volte sempre · {storeName}
             </div>
           </div>
 
-          <div style={{ textAlign: "center", letterSpacing: "3px", fontSize: "9px", color: "#bbb", marginTop: "10px" }}>
+          <div style={{ textAlign: "center", letterSpacing: "3px", fontSize: "10px", color: "#000", marginTop: "10px" }}>
             * * * * * * * * * * * * * *
           </div>
         </div>
