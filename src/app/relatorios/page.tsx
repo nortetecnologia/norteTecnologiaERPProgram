@@ -105,7 +105,7 @@ export default async function RelatoriosPage({
   if (aba === "vendas") {
     const ano = params.ano ?? String(currentYear);
     const mes = params.mes ?? String(now.getMonth() + 1);
-    const dia = params.dia ?? "";
+    const dia = params.dia ?? String(now.getDate());
     const clienteId = params.cliente_id ?? "";
 
     const { start, end, label: periodoLabel } = buildDateRange(ano, mes, dia);
@@ -440,8 +440,8 @@ export default async function RelatoriosPage({
   // ABA OS (Ordens de Serviço)
   // ─────────────────────────────────────────────────────────────────────────
   const ano = params.ano ?? String(currentYear);
-  const mes = params.mes ?? "";
-  const dia = params.dia ?? "";
+  const mes = params.mes ?? String(now.getMonth() + 1);
+  const dia = params.dia ?? String(now.getDate());
   const clienteId = params.cliente_id ?? "";
 
   const { start, end, label: periodoLabel } = buildDateRange(ano, mes, dia);
@@ -523,7 +523,7 @@ export default async function RelatoriosPage({
   const showGrouped = !dia;
 
   const daysInMonth = mes ? new Date(parseInt(ano), parseInt(mes), 0).getDate() : 31;
-  const hasFilter = !!(mes || dia || clienteId);
+  const hasFilter = !!(params.mes || params.dia || params.cliente_id);
 
   const printParams = new URLSearchParams({ aba: "os", ano });
   if (mes) printParams.set("mes", mes);
