@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
-import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import { getSaleReceipt } from "@/lib/queries";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { PDVSale } from "@/types";
 import ReciboActions from "./ReciboActions";
 import PrintButton from "./PrintButton";
@@ -16,6 +17,17 @@ const PAYMENT_LABELS: Record<string, string> = {
   credito_12x: "Crédito 12x",
 };
 
+function fmtDateTime(iso: string) {
+  return new Date(iso).toLocaleString("pt-BR", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
+}
+
+function Sep() {
+  return <div style={{ borderTop: "1px dashed #999", margin: "8px 0" }} />;
+}
+
 export default async function ReciboPage({
   params,
 }: {
@@ -24,94 +36,213 @@ export default async function ReciboPage({
   const { id } = await params;
 
   const sale = (await getSaleReceipt(id)) as PDVSale | null;
-
   if (!sale) notFound();
+
+  const supabase = createAdminClient();
+  const [storeRes, sellerRes] = await Promise.all([
+    supabase.from("store_settings").select("store_name, address, city, state_abbr, phone_number, cnpj").single(),
+    (sale as any).seller_id
+      ? supabase.from("erp_employees").select("name").eq("id", (sale as any).seller_id).single()
+      : Promise.resolve({ data: null }),
+  ]);
+
+  const store = storeRes.data as any;
+  const storeName = store?.store_name ?? "NORTE TECNOLOGIA";
+  const storeAddress = [store?.address, store?.city, store?.state_abbr].filter(Boolean).join(" — ");
+  const storePhone = store?.phone_number ?? "";
+  const sellerName = (sellerRes.data as any)?.name ?? "";
 
   const items = sale.erp_pdv_sale_items ?? [];
   const payments = sale.erp_pdv_sale_payments ?? [];
+  const paidTotal = payments.reduce((s, p) => s + (p.amount || 0), 0);
+  const change = paidTotal - sale.total;
 
   return (
-    <div className="min-h-screen bg-white text-black p-6 max-w-sm mx-auto font-mono text-sm">
-      <div className="no-print flex flex-wrap gap-2 mb-4">
-        <a
-          href="/pdv/vendas"
-          className="bg-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg"
-        >
+    <>
+      <style>{`
+        @media print {
+          .no-print { display: none !important; }
+          body { margin: 0; padding: 0; background: #fff; }
+          @page { size: 80mm auto; margin: 4mm; }
+        }
+        body { background: #f0f0f0; }
+        .receipt-wrap {
+          display: flex;
+          justify-content: center;
+          padding: 24px 0;
+          min-height: 100vh;
+        }
+        .receipt {
+          background: #fff;
+          width: 320px;
+          padding: 20px 18px 24px;
+          font-family: 'Courier New', Courier, monospace;
+          font-size: 11px;
+          color: #000;
+          box-shadow: 0 2px 16px rgba(0,0,0,0.15);
+        }
+        @media print {
+          body { background: #fff; }
+          .receipt-wrap { padding: 0; min-height: auto; }
+          .receipt { box-shadow: none; padding: 0; }
+        }
+      `}</style>
+
+      {/* Action buttons */}
+      <div className="no-print fixed top-0 left-0 right-0 z-50 flex flex-wrap gap-2 p-3 bg-gray-100 border-b border-gray-300 shadow-sm">
+        <a href="/pdv/vendas" className="bg-gray-200 text-gray-700 text-xs px-3 py-1.5 rounded-lg hover:bg-gray-300">
           ← Voltar
         </a>
         <PrintButton />
-        <a
-          href="/pdv"
-          className="bg-gray-100 text-gray-700 text-xs px-3 py-1.5 rounded-lg"
-        >
+        <a href="/pdv" className="bg-gray-100 text-gray-700 text-xs px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-200">
           Nova venda
         </a>
-        <a
-          href={`/pdv/${id}/editar`}
-          className="bg-gray-100 text-gray-700 text-xs px-3 py-1.5 rounded-lg"
-        >
-          ✏️ Editar venda
+        <a href={`/pdv/${id}/editar`} className="bg-gray-100 text-gray-700 text-xs px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-200">
+          ✏️ Editar
         </a>
         <ReciboActions saleId={id} />
       </div>
 
-      {/* Receipt */}
-      <div className="text-center mb-4">
-        <div className="text-lg font-bold">NORTE TECNOLOGIA</div>
-        <div className="text-xs text-gray-500">Recibo de Venda</div>
-        <div className="text-xs text-gray-500">#{sale.sale_number}</div>
-        <div className="text-xs text-gray-400">{formatDateTime(sale.created_at)}</div>
-      </div>
+      <div className="receipt-wrap" style={{ paddingTop: "64px" }}>
+        <div className="receipt">
 
-      {(sale.erp_customers as any)?.name && (
-        <div className="text-xs mb-3 border-t border-dashed border-gray-300 pt-2">
-          Cliente: {(sale.erp_customers as any).name}
-        </div>
-      )}
+          {/* Logo + store header */}
+          <div style={{ textAlign: "center", marginBottom: "12px" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo.png"
+              alt="NT"
+              style={{
+                height: "52px",
+                width: "auto",
+                display: "block",
+                margin: "0 auto 6px",
+                filter: "grayscale(100%) contrast(10) brightness(0.15)",
+              }}
+            />
+            <div style={{ fontWeight: "900", fontSize: "14px", letterSpacing: "2px" }}>
+              {storeName.toUpperCase()}
+            </div>
+            {storeAddress && (
+              <div style={{ fontSize: "9px", color: "#555", marginTop: "2px" }}>{storeAddress}</div>
+            )}
+            {storePhone && (
+              <div style={{ fontSize: "9px", color: "#555" }}>Tel: {storePhone}</div>
+            )}
+          </div>
 
-      <div className="border-t border-dashed border-gray-300 pt-2 mb-2">
-        {items.map((item) => (
-          <div key={item.id} className="flex justify-between text-xs mb-1">
-            <div className="flex-1 mr-2">
-              <span>{item.description}</span>
+          <div style={{ textAlign: "center", letterSpacing: "3px", fontSize: "9px", color: "#888", marginBottom: "6px" }}>
+            * * * * * * * * * * * * * *
+          </div>
+
+          <div style={{ textAlign: "center", fontWeight: "bold", fontSize: "12px", letterSpacing: "1px", marginBottom: "4px" }}>
+            RECIBO DE VENDA
+          </div>
+
+          <Sep />
+
+          {/* Sale number + date */}
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ fontWeight: "bold" }}>Nº {String(sale.sale_number).padStart(6, "0")}</span>
+            <span style={{ color: "#555" }}>{fmtDateTime(sale.created_at)}</span>
+          </div>
+
+          {/* Customer */}
+          {(sale.erp_customers as any)?.name && (
+            <div style={{ marginTop: "4px" }}>
+              <span style={{ color: "#555" }}>Cliente: </span>
+              <span style={{ fontWeight: "bold" }}>{(sale.erp_customers as any).name}</span>
+            </div>
+          )}
+
+          {/* Seller */}
+          {sellerName && (
+            <div style={{ marginTop: "2px" }}>
+              <span style={{ color: "#555" }}>Vendedor: </span>
+              <span style={{ fontWeight: "bold" }}>{sellerName}</span>
+            </div>
+          )}
+
+          <Sep />
+
+          {/* Items header */}
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "#777", marginBottom: "4px", textTransform: "uppercase" }}>
+            <span>Descrição</span>
+            <span>Valor</span>
+          </div>
+
+          {/* Items */}
+          {items.map((item) => (
+            <div key={item.id} style={{ marginBottom: "5px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ flex: 1, marginRight: "8px", wordBreak: "break-word" }}>{item.description}</span>
+                <span style={{ flexShrink: 0 }}>{formatCurrency(item.subtotal)}</span>
+              </div>
               {item.quantity > 1 && (
-                <span className="text-gray-500 block">
-                  {item.quantity} x {formatCurrency(item.unit_price)}
-                </span>
+                <div style={{ color: "#777", fontSize: "10px", paddingLeft: "8px" }}>
+                  {item.quantity} × {formatCurrency(item.unit_price)}
+                </div>
               )}
             </div>
-            <span className="shrink-0">{formatCurrency(item.subtotal)}</span>
-          </div>
-        ))}
-      </div>
+          ))}
 
-      <div className="border-t border-dashed border-gray-300 pt-2 space-y-1 text-xs">
-        {(sale.discount ?? 0) > 0 && (
-          <div className="flex justify-between">
-            <span>Desconto</span>
-            <span>- {formatCurrency(sale.discount!)}</span>
+          <Sep />
+
+          {/* Subtotal + discount */}
+          {(sale.discount ?? 0) > 0 && (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span>Subtotal</span>
+                <span>{formatCurrency(sale.total + (sale.discount ?? 0))}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span>Desconto</span>
+                <span>- {formatCurrency(sale.discount!)}</span>
+              </div>
+            </>
+          )}
+
+          {/* Total */}
+          <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "900", fontSize: "15px", marginTop: "4px", paddingTop: "4px", borderTop: "2px solid #000" }}>
+            <span>TOTAL</span>
+            <span>{formatCurrency(sale.total)}</span>
           </div>
-        )}
-        <div className="flex justify-between font-bold">
-          <span>TOTAL</span>
-          <span>{formatCurrency(sale.total)}</span>
+
+          <Sep />
+
+          {/* Payments */}
+          <div style={{ marginBottom: "4px", fontSize: "9px", color: "#777", textTransform: "uppercase" }}>Pagamento</div>
+          {payments.map((p) => (
+            <div key={p.id} style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>{PAYMENT_LABELS[p.method] ?? p.method}</span>
+              <span>{formatCurrency(p.amount)}</span>
+            </div>
+          ))}
+
+          {change > 0.001 && (
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px", fontWeight: "bold" }}>
+              <span>Troco</span>
+              <span>{formatCurrency(change)}</span>
+            </div>
+          )}
+
+          <Sep />
+
+          {/* Footer */}
+          <div style={{ textAlign: "center", marginTop: "8px" }}>
+            <div style={{ fontWeight: "bold", fontSize: "12px", letterSpacing: "1px" }}>
+              OBRIGADO!
+            </div>
+            <div style={{ color: "#777", fontSize: "9px", marginTop: "2px" }}>
+              Volte sempre · {storeName}
+            </div>
+          </div>
+
+          <div style={{ textAlign: "center", letterSpacing: "3px", fontSize: "9px", color: "#bbb", marginTop: "10px" }}>
+            * * * * * * * * * * * * * *
+          </div>
         </div>
       </div>
-
-      <div className="border-t border-dashed border-gray-300 pt-2 mt-2 space-y-1 text-xs">
-        {payments.map((p) => (
-          <div key={p.id} className="flex justify-between">
-            <span>{PAYMENT_LABELS[p.method] ?? p.method}</span>
-            <span>{formatCurrency(p.amount)}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="text-center text-xs text-gray-400 mt-4 border-t border-dashed border-gray-300 pt-3">
-        Obrigado pela preferência!
-      </div>
-
-      <style>{`@media print { .no-print { display: none; } }`}</style>
-    </div>
+    </>
   );
 }

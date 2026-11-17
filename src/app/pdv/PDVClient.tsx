@@ -30,6 +30,8 @@ export default function PDVClient({
   const [discountType, setDiscountType] = useState<"R$" | "%">("R$");
   const [search, setSearch] = useState("");
   const [customerId, setCustomerId] = useState("");
+  // Tracks the raw string the user is typing in a price field (by product_id)
+  const [priceTexts, setPriceTexts] = useState<Record<string, string>>({});
 
   const filteredProducts = products.filter(
     (p) =>
@@ -58,13 +60,22 @@ export default function PDVClient({
           i === existing ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
-      return [...prev, { product_id: product.id, description: product.name, quantity: 1, unit_price: product.price }];
+      return [...prev, {
+        product_id: product.id,
+        description: product.name,
+        quantity: 1,
+        unit_price: product.price ?? 0,
+      }];
     });
+    // Clear any stale price edit for this product
+    setPriceTexts((prev) => { const n = { ...prev }; delete n[product.id]; return n; });
   }
 
   function updateCartQty(idx: number, qty: number) {
     if (qty <= 0) {
+      const removedId = cart[idx]?.product_id;
       setCart((prev) => prev.filter((_, i) => i !== idx));
+      if (removedId) setPriceTexts((prev) => { const n = { ...prev }; delete n[removedId]; return n; });
     } else {
       setCart((prev) => prev.map((item, i) => (i === idx ? { ...item, quantity: qty } : item)));
     }
@@ -86,7 +97,7 @@ export default function PDVClient({
     setPayments((prev) => prev.map((p, i) => (i === idx ? { ...p, [field]: value } : p)));
   }
 
-  const subtotal = cart.reduce((s, i) => s + i.quantity * i.unit_price, 0);
+  const subtotal = cart.reduce((s, i) => s + i.quantity * (i.unit_price || 0), 0);
   const discount = discountType === "%" ? (subtotal * discountInput) / 100 : discountInput;
   const discountPct = subtotal > 0 ? (discount / subtotal) * 100 : 0;
   const total = Math.max(0, subtotal - discount);
@@ -138,7 +149,7 @@ export default function PDVClient({
               <div className="p-2">
                 <div className="text-sm text-white font-medium leading-tight truncate">{p.name}</div>
                 {p.sku && <div className="text-xs text-gray-500 truncate">{p.sku}</div>}
-                <div className="text-brand-yellow text-sm font-bold mt-0.5">{formatCurrency(p.price)}</div>
+                <div className="text-brand-yellow text-sm font-bold mt-0.5">{formatCurrency(p.price ?? 0)}</div>
                 {p.stock !== undefined && (
                   <div className={`text-xs ${(p.stock ?? 0) < 5 ? "text-red-400" : "text-gray-500"}`}>
                     Estoque: {p.stock}
@@ -212,7 +223,7 @@ export default function PDVClient({
             ) : (
               <div className="space-y-2">
                 {cart.map((item, idx) => (
-                  <div key={idx} className="bg-brand-gray-mid rounded-xl p-3">
+                  <div key={item.product_id} className="bg-brand-gray-mid rounded-xl p-3">
                     <input type="hidden" name={`item_product_id_${idx}`} value={item.product_id} />
                     <input type="hidden" name={`item_description_${idx}`} value={item.description} />
                     <div className="text-sm text-white font-medium truncate mb-2">{item.description}</div>
@@ -238,8 +249,18 @@ export default function PDVClient({
                       <input
                         type="number"
                         name={`item_unit_price_${idx}`}
-                        value={item.unit_price}
-                        onChange={(e) => updateCartPrice(idx, parseFloat(e.target.value) || 0)}
+                        value={priceTexts[item.product_id] ?? item.unit_price}
+                        onChange={(e) => {
+                          setPriceTexts((prev) => ({ ...prev, [item.product_id]: e.target.value }));
+                          const v = parseFloat(e.target.value);
+                          if (!isNaN(v) && v >= 0) updateCartPrice(idx, v);
+                        }}
+                        onBlur={(e) => {
+                          const v = parseFloat(e.target.value);
+                          const final = isNaN(v) || v < 0 ? 0 : v;
+                          updateCartPrice(idx, final);
+                          setPriceTexts((prev) => { const n = { ...prev }; delete n[item.product_id]; return n; });
+                        }}
                         min="0"
                         step="0.01"
                         className="flex-1 bg-brand-gray-dark border border-brand-gray-light rounded-lg px-2 py-1 text-sm text-white text-right focus:outline-none"
@@ -251,7 +272,7 @@ export default function PDVClient({
                       >✕</button>
                     </div>
                     <div className="text-right text-xs text-gray-400 mt-1">
-                      = {formatCurrency(item.quantity * item.unit_price)}
+                      = {formatCurrency(item.quantity * (item.unit_price || 0))}
                     </div>
                   </div>
                 ))}
