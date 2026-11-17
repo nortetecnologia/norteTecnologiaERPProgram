@@ -166,11 +166,9 @@ Disponível em [http://localhost:3001](http://localhost:3001) (porta configuráv
 
 ---
 
-## Deploy
+## Distribuição
 
-**URL de produção:** `https://norte-tecnologia-sistema.vercel.app`
-
-Hospedado na Vercel. Deploy automático a partir da branch `main`.
+O programa é distribuído como instalador Windows (`.exe`) gerado pelo GitHub Actions a cada nova tag de versão. O instalador é publicado como GitHub Release e o auto-update detecta novas versões automaticamente via `electron-updater`.
 
 ---
 
@@ -197,4 +195,4 @@ Hospedado na Vercel. Deploy automático a partir da branch `main`.
 
 ---
 
-**Domínio:** `erp.nortetecnologia.com` (a configurar na Vercel)
+**Acesso local:** `http://localhost:3721` (porta padrão do app desktop)

@@ -9,7 +9,7 @@
 ## 1. Estado atual do projeto
 
 - **Estágio:** Sistema em produção. Todos os módulos da Fase 1 implementados e funcionando.
-- **URL de produção:** `https://norte-tecnologia-sistema.vercel.app`
+- **Distribuição:** App desktop Windows (instalador `.exe` via GitHub Releases, auto-update com `electron-updater`)
 - **Última atividade:** 2026-11-10 — Correção de nomes de colunas (produtos/PDV), configurações completas com formas de pagamento, validação CPF/CNPJ.
 - **Situação geral:** Sistema operacional. Migrations aplicadas no Supabase. Cloudinary integrado. Upload de imagens nas OS funcionando. Autenticação por `app_metadata.erp_role`. Banco de dados compartilhado com o site — colunas corretas: `is_active`, `stock`. Imagens em tabela separada `product_images(id, product_id, url, alt, is_primary, position)`.
 - **Próxima etapa:** Fase 2 — Roles diferenciados no dashboard (admin vs. operador), relatórios avançados, NF-e.
