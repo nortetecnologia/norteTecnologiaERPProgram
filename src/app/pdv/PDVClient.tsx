@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useActionState } from "react";
+import { useState, useActionState, useEffect, useRef } from "react";
 import { createSale } from "./actions";
 import { formatCurrency } from "@/lib/utils";
 
@@ -103,6 +103,21 @@ export default function PDVClient({
   const total = Math.max(0, subtotal - discount);
   const paidTotal = payments.reduce((s, p) => s + (p.amount || 0), 0);
   const change = paidTotal - total;
+
+  // Auto-preenche o pagamento quando o total muda, desde que haja apenas
+  // uma forma e o usuário não tenha divergido manualmente do total anterior.
+  const prevTotal = useRef(0);
+  useEffect(() => {
+    setPayments((prev) => {
+      if (prev.length !== 1) return prev;
+      const p = prev[0];
+      if (p.amount === prevTotal.current || p.amount === 0) {
+        return [{ ...p, amount: total }];
+      }
+      return prev;
+    });
+    prevTotal.current = total;
+  }, [total]);
 
   function fillPaymentWithTotal() {
     if (payments.length === 1) {
