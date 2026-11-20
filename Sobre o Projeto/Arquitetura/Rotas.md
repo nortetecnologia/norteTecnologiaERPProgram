@@ -31,7 +31,7 @@ O middleware redireciona para `/login` qualquer acesso não autenticado.
 | `/produtos/[id]/editar` | Edição de produto/serviço |
 | `/estoque` | Visão geral de estoque: alertas, sem SKU, sem imagem |
 | `/estoque/entrada` | Entrada de mercadoria: registra lotes de estoque com fornecedor, referência/NF, custo unitário; suporte offline |
-| `/os` | Listagem de Ordens de Serviço |
+| `/os` | Listagem de Ordens de Serviço; busca em título, equipamento, serial e nº OS; filtro por cliente e período; suporte offline |
 | `/os/nova` | Criação de nova OS |
 | `/os/[id]` | Detalhes da OS |
 | `/os/[id]/editar` | Edição da OS |

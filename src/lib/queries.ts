@@ -13,6 +13,11 @@ function buildLast7Days(todayISO: string): string[] {
   });
 }
 
+function firstOfMonth(todayISO: string): string {
+  const d = new Date(todayISO);
+  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
+}
+
 export const getCachedDashboard = (todayISO: string) => {
   if (shouldUseLocalData()) {
     const d = readOfflineData();
@@ -25,11 +30,13 @@ export const getCachedDashboard = (todayISO: string) => {
     const lowStock = products.filter((p: any) => p.is_active && p.product_type === "product" && p.stock < 5);
     const recentSales = [...sales].sort((a, b) => b.created_at?.localeCompare(a.created_at)).slice(0, 5);
     const days7 = buildLast7Days(todayISO);
+    const monthStart = firstOfMonth(todayISO);
     const dailyRevenue = days7.map((date) => ({
       date,
       pdv: sales.filter((s) => s.created_at?.startsWith(date)).reduce((sum: number, s: any) => sum + (s.total ?? 0), 0),
       osCount: os.filter((o) => o.created_at?.startsWith(date)).length,
     }));
+    const monthlyPDVTotal = sales.filter((s: any) => s.created_at >= monthStart).reduce((sum: number, s: any) => sum + (s.total ?? 0), 0);
     return Promise.resolve({
       salesRes: { data: todaySales, error: null, count: todaySales.length },
       osRes: { data: openOS, error: null, count: openOS.length },
@@ -37,6 +44,7 @@ export const getCachedDashboard = (todayISO: string) => {
       stockRes: { data: lowStock, error: null, count: lowStock.length },
       recentSalesRes: { data: recentSales, error: null },
       dailyRevenueRes: dailyRevenue,
+      monthlyPDVTotal,
     });
   }
   return unstable_cache(
@@ -53,12 +61,15 @@ export const getCachedDashboard = (todayISO: string) => {
         supabase.from("erp_pdv_sales").select("created_at, total").gte("created_at", startISO),
         supabase.from("erp_service_orders").select("created_at").gte("created_at", startISO),
       ]);
+      const monthStart = firstOfMonth(todayISO);
+      const monthlyRes = await supabase.from("erp_pdv_sales").select("total").gte("created_at", monthStart);
       const dailyRevenueRes = days7.map((date) => ({
         date,
         pdv: (pdvDailyRes.data ?? []).filter((s) => s.created_at?.startsWith(date)).reduce((sum, s) => sum + (s.total ?? 0), 0),
         osCount: (osDailyRes.data ?? []).filter((o) => o.created_at?.startsWith(date)).length,
       }));
-      return { salesRes, osRes, overdueOSRes, stockRes, recentSalesRes, dailyRevenueRes };
+      const monthlyPDVTotal = (monthlyRes.data ?? []).reduce((sum, s) => sum + (s.total ?? 0), 0);
+      return { salesRes, osRes, overdueOSRes, stockRes, recentSalesRes, dailyRevenueRes, monthlyPDVTotal };
     },
     ["dashboard", todayISO],
     { revalidate: TTL, tags: ["dashboard", "sales", "service-orders", "products"] }

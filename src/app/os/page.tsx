@@ -5,6 +5,7 @@ import { formatDate, formatOSNumber } from "@/lib/utils";
 import { OS_STATUS_LABELS, OS_STATUS_COLORS, type ServiceOrder } from "@/types";
 import { requireAuth } from "@/lib/auth";
 import { getCachedServiceOrders, getCachedCustomers } from "@/lib/queries";
+import { shouldUseLocalData, readOfflineData } from "@/lib/offline";
 
 export default async function OSPage({
   searchParams,
@@ -20,21 +21,50 @@ export default async function OSPage({
   let orders: ServiceOrder[];
   const hasAdvancedFilter = q || cliente || de || ate;
   if (hasAdvancedFilter) {
-    const supabase = createAdminClient();
-    let query = supabase
-      .from("erp_service_orders")
-      .select("*, erp_customers(name, phone)")
-      .order("created_at", { ascending: false })
-      .limit(200);
+    if (shouldUseLocalData()) {
+      const d = readOfflineData();
+      const customers = (d["erp_customers"] ?? []) as any[];
+      let rows = (d["erp_service_orders"] ?? []) as any[];
+      if (status) rows = rows.filter((o: any) => o.status === status);
+      if (q) {
+        const qLow = q.toLowerCase();
+        const qNum = parseInt(q);
+        rows = rows.filter((o: any) =>
+          o.title?.toLowerCase().includes(qLow) ||
+          o.equipment?.toLowerCase().includes(qLow) ||
+          o.serial_number?.toLowerCase().includes(qLow) ||
+          (!isNaN(qNum) && o.number === qNum)
+        );
+      }
+      if (cliente) rows = rows.filter((o: any) => o.customer_id === cliente);
+      if (de) rows = rows.filter((o: any) => o.created_at >= de + "T00:00:00");
+      if (ate) rows = rows.filter((o: any) => o.created_at <= ate + "T23:59:59");
+      orders = rows
+        .sort((a: any, b: any) => b.created_at?.localeCompare(a.created_at))
+        .slice(0, 200)
+        .map((o: any) => ({ ...o, erp_customers: customers.find((c: any) => c.id === o.customer_id) ?? null })) as ServiceOrder[];
+    } else {
+      const supabase = createAdminClient();
+      let query = supabase
+        .from("erp_service_orders")
+        .select("*, erp_customers(name, phone)")
+        .order("created_at", { ascending: false })
+        .limit(200);
 
-    if (status) query = query.eq("status", status);
-    if (q) query = query.ilike("title", `%${q}%`);
-    if (cliente) query = query.eq("customer_id", cliente);
-    if (de) query = query.gte("created_at", de + "T00:00:00");
-    if (ate) query = query.lte("created_at", ate + "T23:59:59");
+      if (status) query = query.eq("status", status);
+      if (q) {
+        const qNum = parseInt(q);
+        const orParts = [`title.ilike.%${q}%`, `equipment.ilike.%${q}%`, `serial_number.ilike.%${q}%`];
+        if (!isNaN(qNum)) orParts.push(`number.eq.${qNum}`);
+        query = query.or(orParts.join(","));
+      }
+      if (cliente) query = query.eq("customer_id", cliente);
+      if (de) query = query.gte("created_at", de + "T00:00:00");
+      if (ate) query = query.lte("created_at", ate + "T23:59:59");
 
-    const { data } = await query.returns<ServiceOrder[]>();
-    orders = data ?? [];
+      const { data } = await query.returns<ServiceOrder[]>();
+      orders = data ?? [];
+    }
   } else {
     orders = (await getCachedServiceOrders(status)) as ServiceOrder[];
   }
@@ -73,8 +103,8 @@ export default async function OSPage({
           {status && <input type="hidden" name="status" value={status} />}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             <div>
-              <label className="text-xs text-gray-500 block mb-1">Busca (título)</label>
-              <input type="text" name="q" defaultValue={q ?? ""} placeholder="Buscar..." className={inputCls + " w-full"} />
+              <label className="text-xs text-gray-500 block mb-1">Busca (título, equip., serial, nº OS)</label>
+              <input type="text" name="q" defaultValue={q ?? ""} placeholder="Ex: iPhone, 123, ABC456..." className={inputCls + " w-full"} />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">Cliente</label>
@@ -141,6 +171,7 @@ export default async function OSPage({
                   <div className="text-xs text-gray-500">
                     {(os.erp_customers as any)?.name ?? "Cliente não encontrado"}
                     {os.equipment && ` · ${os.equipment}`}
+                    {os.serial_number && <span className="text-gray-600"> · S/N: {os.serial_number}</span>}
                   </div>
                 </div>
                 <div className={`text-xs px-2.5 py-1 rounded-full shrink-0 ${OS_STATUS_COLORS[os.status]}`}>

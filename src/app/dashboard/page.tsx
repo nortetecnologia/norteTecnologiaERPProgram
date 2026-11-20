@@ -11,7 +11,7 @@ export default async function DashboardPage() {
   today.setHours(0, 0, 0, 0);
   const todayISO = today.toISOString();
 
-  const { salesRes, osRes, overdueOSRes, stockRes, recentSalesRes, dailyRevenueRes } = await getCachedDashboard(todayISO);
+  const { salesRes, osRes, overdueOSRes, stockRes, recentSalesRes, dailyRevenueRes, monthlyPDVTotal } = await getCachedDashboard(todayISO);
 
   const todaySalesTotal = (salesRes.data ?? []).reduce(
     (sum, s) => sum + (s.total ?? 0),
@@ -23,6 +23,7 @@ export default async function DashboardPage() {
   const recentSales = recentSalesRes.data ?? [];
   const dailyRevenue = dailyRevenueRes ?? [];
   const maxPdv = Math.max(...dailyRevenue.map((d) => d.pdv), 1);
+  const monthPDV = monthlyPDVTotal ?? 0;
 
   const stats = [
     { label: "Vendas hoje", value: formatCurrency(todaySalesTotal), icon: "💰", color: "text-green-400", href: "/pdv" },
@@ -140,8 +141,15 @@ export default async function DashboardPage() {
         {/* Daily revenue chart */}
         {dailyRevenue.some((d) => d.pdv > 0 || d.osCount > 0) && (
           <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl p-5 mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-gray-400">Faturamento PDV — últimos 7 dias</h2>
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <div>
+                <h2 className="text-sm font-semibold text-gray-400">Faturamento PDV — últimos 7 dias</h2>
+                {monthPDV > 0 && (
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Total do mês: <span className="text-green-400 font-semibold">{formatCurrency(monthPDV)}</span>
+                  </p>
+                )}
+              </div>
               <Link href="/relatorios" className="text-xs text-gray-500 hover:text-brand-yellow transition-colors">
                 Ver relatórios →
               </Link>

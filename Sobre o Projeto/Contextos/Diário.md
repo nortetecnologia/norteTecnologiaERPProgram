@@ -10,24 +10,35 @@
 
 - **Estágio:** Sistema em produção. Todos os módulos da Fase 1 implementados e funcionando. Fase 1+ em andamento.
 - **Distribuição:** App desktop Windows (instalador `.exe` via GitHub Releases, auto-update com `electron-updater`)
-- **Última atividade:** 2026-11-20 — Gráfico de faturamento no dashboard + valor total do inventário no estoque.
+- **Última atividade:** 2026-11-20 — OS busca expandida + total mensal PDV no dashboard.
 - **Situação geral:** Sistema operacional. Migrations aplicadas no Supabase. Cloudinary integrado. Upload de imagens nas OS funcionando. Autenticação por `app_metadata.erp_role`. Banco de dados compartilhado com o site — colunas corretas: `is_active`, `stock`. Imagens em tabela separada `product_images(id, product_id, url, alt, is_primary, position)`.
-- **Próxima etapa:** Fase 2 — relatórios avançados por período, NF-e.
+- **Próxima etapa:** Fase 2 — relatórios avançados por período, lucratividade, NF-e.
 
 ---
 
 ## 2. Última atualização
 
 - **Data:** 2026-11-20
-- **Versão:** v0.5.6
-- **Atividade:** Feat — gráfico de faturamento diário no dashboard + valor total do inventário no estoque.
+- **Versão:** v0.5.7
+- **Atividade:** Feat — OS busca expandida (equip./serial/nº) + serial na listagem + total mensal no dashboard.
 - **Resultado:**
-  - **`/dashboard`** — gráfico de barras CSS puro mostrando faturamento PDV dos últimos 7 dias (hover mostra valor exato). Aparece somente se houver dados. Query `getCachedDashboard` extendida com `dailyRevenueRes` (PDV por dia + contagem de OS por dia), suporte offline incluso.
-  - **`/estoque`** — banner amarelo "Valor total do inventário" = somatório de `stock × price` de todos os produtos ativos, exibindo também total de produtos e total de unidades. Campo `price` adicionado ao select de `getCachedStock` (online path). Offline usa dados já disponíveis no JSON local.
+  - **`/os`** — busca agora pesquisa em `title`, `equipment`, `serial_number` e `number` (via `.or()` PostgREST no modo online; filtro manual no modo offline). Serial exibido no subtítulo do card. Label atualizado para indicar os campos buscados.
+  - **`/dashboard`** — total do mês (PDV) exibido abaixo do título do gráfico de 7 dias. `getCachedDashboard` extendido com `monthlyPDVTotal` (consulta separada por mês; suporte offline incluso).
 
 ---
 
 ## 3. Implementações concluídas
+
+### 2026-11-20 — Feat: OS busca expandida + total mensal no dashboard (v0.5.7)
+
+- **Objetivo:** Melhorar busca de OS por técnicos (equip./serial/nº) e visibilidade mensal no dashboard.
+- **Implementação:**
+  1. **`src/app/os/page.tsx`** — adicionado import `shouldUseLocalData` / `readOfflineData`. Path de filtro avançado agora tem branch offline: filtra localmente por `title`, `equipment`, `serial_number` e `number`. Online usa `.or('title.ilike.%q%,equipment.ilike.%q%,serial_number.ilike.%q%,number.eq.N')` via PostgREST. Serial exibido no subtítulo do card. Label do campo atualizado para "Busca (título, equip., serial, nº OS)".
+  2. **`src/lib/queries.ts`** — helper `firstOfMonth(todayISO)` adicionado. `getCachedDashboard` extendido com `monthlyPDVTotal`: query `erp_pdv_sales.total` a partir do primeiro dia do mês; offline soma via filter + reduce. Online executa query adicional em paralelo.
+  3. **`src/app/dashboard/page.tsx`** — extrai `monthPDV` e exibe "Total do mês: R$ X.XXX,XX" abaixo do título do gráfico (oculto quando zero).
+- **Suporte offline:** filtro de OS e total mensal PDV funcionam via `readOfflineData()`.
+
+---
 
 ### 2026-11-20 — Feat: gráfico de faturamento + valor de inventário (v0.5.6)
 
