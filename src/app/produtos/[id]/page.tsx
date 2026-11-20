@@ -4,6 +4,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/auth";
 import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { shouldUseLocalData, readOfflineData } from "@/lib/offline";
 
 function MovBadge({ type }: { type: string }) {
   if (type === "in")
@@ -21,26 +22,53 @@ export default async function ProdutoDetailPage({
   const { id } = await params;
   await requireAuth();
 
-  const supabase = createAdminClient();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let product: any = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let movements: any[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let images: any[] = [];
 
-  const [{ data: product }, { data: movements }, { data: images }] = await Promise.all([
-    supabase
-      .from("products")
-      .select("id, name, sku, barcode, price, price_max, stock, is_active, product_type, description, brand, internal_code, category_id, categories(name)")
-      .eq("id", id)
-      .single(),
-    supabase
-      .from("erp_stock_movements")
-      .select("id, type, quantity, reason, reference, created_at")
-      .eq("product_id", id)
-      .order("created_at", { ascending: false })
-      .limit(100),
-    supabase
-      .from("product_images")
-      .select("url, is_primary, alt")
-      .eq("product_id", id)
-      .order("position"),
-  ]);
+  if (shouldUseLocalData()) {
+    const d = readOfflineData();
+    const products = (d["products"] ?? []) as Array<Record<string, unknown>>;
+    const categories = (d["categories"] ?? []) as Array<Record<string, unknown>>;
+    product = products.find((p) => p.id === id) ?? null;
+    if (product) {
+      const cat = categories.find((c) => c.id === product!.category_id);
+      product = { ...product, categories: cat ? { name: cat.name } : null };
+    }
+    movements = ((d["erp_stock_movements"] ?? []) as Array<Record<string, unknown>>)
+      .filter((m) => m.product_id === id)
+      .sort((a, b) => String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")))
+      .slice(0, 100);
+    images = ((d["product_images"] ?? []) as Array<Record<string, unknown>>)
+      .filter((img) => img.product_id === id)
+      .sort((a, b) => Number(a.position ?? 0) - Number(b.position ?? 0));
+  } else {
+    const supabase = createAdminClient();
+    const [{ data: p }, { data: m }, { data: i }] = await Promise.all([
+      supabase
+        .from("products")
+        .select("id, name, sku, barcode, price, price_max, stock, is_active, product_type, description, brand, internal_code, category_id, categories(name)")
+        .eq("id", id)
+        .single(),
+      supabase
+        .from("erp_stock_movements")
+        .select("id, type, quantity, reason, reference, created_at")
+        .eq("product_id", id)
+        .order("created_at", { ascending: false })
+        .limit(100),
+      supabase
+        .from("product_images")
+        .select("url, is_primary, alt")
+        .eq("product_id", id)
+        .order("position"),
+    ]);
+    product = p;
+    movements = m ?? [];
+    images = i ?? [];
+  }
 
   if (!product) notFound();
 

@@ -10,7 +10,7 @@
 
 - **Estágio:** Sistema em produção. Todos os módulos da Fase 1 implementados e funcionando. Fase 1+ em andamento.
 - **Distribuição:** App desktop Windows (instalador `.exe` via GitHub Releases, auto-update com `electron-updater`)
-- **Última atividade:** 2026-11-20 — Detalhe de produto com histórico de estoque + gestão de usuários ERP.
+- **Última atividade:** 2026-11-20 — Verificação e correção de suporte offline em todas as funcionalidades.
 - **Situação geral:** Sistema operacional. Migrations aplicadas no Supabase. Cloudinary integrado. Upload de imagens nas OS funcionando. Autenticação por `app_metadata.erp_role`. Banco de dados compartilhado com o site — colunas corretas: `is_active`, `stock`. Imagens em tabela separada `product_images(id, product_id, url, alt, is_primary, position)`.
 - **Próxima etapa:** Fase 1+ continuada (ver lista de sugestões) → Fase 2 — relatórios avançados, NF-e.
 
@@ -19,11 +19,12 @@
 ## 2. Última atualização
 
 - **Data:** 2026-11-20
-- **Atividade:** Feat — detalhe de produto com histórico de estoque + gestão de usuários ERP.
+- **Atividade:** Fix/offline — verificação completa de suporte offline + correções.
 - **Resultado:**
-  - `/produtos/[id]` — nova rota com dados do produto, estatísticas (entradas/saídas totais) e tabela completa de movimentações do estoque (tipo, motivo, referência, quantidade, data). Estoque → link "Histórico" para cada produto crítico.
-  - `/configuracoes/usuarios` — nova rota admin para listar usuários com acesso ERP, alterar role (admin/operador) e conceder/revogar acesso. Acessível via botão em Configurações.
-  - Auditoria confirmou que edição completa de OS e busca por código de barras no PDV JÁ EXISTIAM.
+  - Auditoria offline confirmou que PDV já inseria `erp_stock_movements` offline (linhas 93–99 de `pdv/actions.ts`).
+  - **`/produtos/[id]`** — adicionado path offline: lê produto, movimentações e imagens de `offline_data.json` via `shouldUseLocalData()` / `readOfflineData()`.
+  - **`/os/[id]`** — nome do cliente agora é link clicável para `/clientes/[customer_id]`.
+  - Confirmados com suporte offline completo: OS (create/update/delete/status), clientes, produtos, estoque (`adjustStock`), PDV.
 
 ---
 

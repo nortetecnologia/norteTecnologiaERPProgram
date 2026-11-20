@@ -67,7 +67,16 @@ export default async function OSDetailPage({ params }: { params: Promise<{ id: s
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl p-4">
             <div className="text-xs text-gray-500 mb-2">Cliente</div>
-            <div className="text-sm text-white font-medium">{(os.erp_customers as any)?.name}</div>
+            {os.customer_id ? (
+              <Link
+                href={`/clientes/${os.customer_id}`}
+                className="text-sm text-white font-medium hover:text-brand-yellow transition-colors"
+              >
+                {(os.erp_customers as any)?.name ?? "—"}
+              </Link>
+            ) : (
+              <div className="text-sm text-white font-medium">{(os.erp_customers as any)?.name ?? "—"}</div>
+            )}
             {(os.erp_customers as any)?.phone && (
               <div className="text-xs text-gray-400 mt-1">{formatPhone((os.erp_customers as any).phone)}</div>
             )}
