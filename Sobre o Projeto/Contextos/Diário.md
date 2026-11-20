@@ -10,7 +10,7 @@
 
 - **Estágio:** Sistema em produção. Todos os módulos da Fase 1 implementados e funcionando. Fase 1+ em andamento.
 - **Distribuição:** App desktop Windows (instalador `.exe` via GitHub Releases, auto-update com `electron-updater`)
-- **Última atividade:** 2026-11-20 — Busca universal (/busca) com ícone no cabeçalho.
+- **Última atividade:** 2026-11-20 — Total mensal de OS no dashboard + link de Busca na Sidebar.
 - **Situação geral:** Sistema operacional. Migrations aplicadas no Supabase. Cloudinary integrado. Upload de imagens nas OS funcionando. Autenticação por `app_metadata.erp_role`. Banco de dados compartilhado com o site — colunas corretas: `is_active`, `stock`. Imagens em tabela separada `product_images(id, product_id, url, alt, is_primary, position)`.
 - **Próxima etapa:** Fase 2 — relatórios avançados por período, lucratividade, NF-e.
 
@@ -19,15 +19,27 @@
 ## 2. Última atualização
 
 - **Data:** 2026-11-20
-- **Versão:** v0.5.8
-- **Atividade:** Feat — busca universal (`/busca`) acessível pelo ícone de lupa no cabeçalho.
+- **Versão:** v0.5.9
+- **Atividade:** Feat — total mensal de OS no dashboard + link de Busca na Sidebar.
 - **Resultado:**
-  - **`/busca`** — nova rota de busca universal: pesquisa simultaneamente em clientes (nome, telefone, CPF/CNPJ), OS (título, equipamento, serial, nº) e produtos (nome, SKU, código de barras). Resultados agrupados por tipo com links diretos. Suporte offline via `readOfflineData()`.
-  - **`AppHeader`** — ícone de lupa + link "Buscar" (texto visível em sm+) adicionado antes do botão Sair.
+  - **`queries.ts`** — `getCachedDashboard` agora retorna `monthlyOSTotal`: query `erp_service_orders` com join `erp_service_order_items` para o mês corrente (status ≠ cancelled). Offline soma via filtro manual no `readOfflineData()`.
+  - **`dashboard/page.tsx`** — subtítulo do gráfico exibe "PDV R$ X · OS R$ X · total R$ X" quando há OS faturadas no mês.
+  - **`Sidebar.tsx`** — item "Busca" (ícone lupa) adicionado ao menu lateral entre Dashboard e PDV.
 
 ---
 
 ## 3. Implementações concluídas
+
+### 2026-11-20 — Feat: total mensal OS no dashboard + Busca na Sidebar (v0.5.9)
+
+- **Objetivo:** Visibilidade do faturamento de OS do mês no dashboard e acesso rápido à busca pela sidebar.
+- **Implementação:**
+  1. **`src/lib/queries.ts`** — `getCachedDashboard` retorna `monthlyOSTotal`. Online: query adicional `erp_service_orders.select("labor_cost, discount, erp_service_order_items(quantity, unit_price)")` para o mês corrente, filtrando `status != cancelled`. Soma em JS: `labor_cost + items_sum - discount`. Offline: mesma lógica usando `d["erp_service_order_items"]` filtrado por `service_order_id`.
+  2. **`src/app/dashboard/page.tsx`** — extrai `monthOS = monthlyOSTotal ?? 0`. Subtítulo do gráfico exibe "Mês: PDV R$ X · OS R$ X · total R$ X" quando `monthOS > 0`.
+  3. **`src/components/layout/Sidebar.tsx`** — item "Busca" com ícone lupa adicionado ao `NAV_ITEMS` entre Dashboard e PDV, com `exact: true`.
+- **Suporte offline:** `monthlyOSTotal` computado via `readOfflineData()` com join manual de itens.
+
+---
 
 ### 2026-11-20 — Feat: busca universal /busca + ícone no cabeçalho (v0.5.8)
 

@@ -37,6 +37,13 @@ export const getCachedDashboard = (todayISO: string) => {
       osCount: os.filter((o) => o.created_at?.startsWith(date)).length,
     }));
     const monthlyPDVTotal = sales.filter((s: any) => s.created_at >= monthStart).reduce((sum: number, s: any) => sum + (s.total ?? 0), 0);
+    const osItems = (d["erp_service_order_items"] ?? []) as any[];
+    const osMonth = os.filter((o: any) => o.created_at >= monthStart && o.status !== "cancelled");
+    const monthlyOSTotal = osMonth.reduce((sum: number, o: any) => {
+      const items = osItems.filter((i: any) => i.service_order_id === o.id);
+      const itemsTotal = items.reduce((s: number, i: any) => s + (i.quantity ?? 0) * (i.unit_price ?? 0), 0);
+      return sum + (o.labor_cost ?? 0) + itemsTotal - (o.discount ?? 0);
+    }, 0);
     return Promise.resolve({
       salesRes: { data: todaySales, error: null, count: todaySales.length },
       osRes: { data: openOS, error: null, count: openOS.length },
@@ -45,6 +52,7 @@ export const getCachedDashboard = (todayISO: string) => {
       recentSalesRes: { data: recentSales, error: null },
       dailyRevenueRes: dailyRevenue,
       monthlyPDVTotal,
+      monthlyOSTotal,
     });
   }
   return unstable_cache(
@@ -62,14 +70,23 @@ export const getCachedDashboard = (todayISO: string) => {
         supabase.from("erp_service_orders").select("created_at").gte("created_at", startISO),
       ]);
       const monthStart = firstOfMonth(todayISO);
-      const monthlyRes = await supabase.from("erp_pdv_sales").select("total").gte("created_at", monthStart);
+      const [monthlyRes, monthlyOSRes] = await Promise.all([
+        supabase.from("erp_pdv_sales").select("total").gte("created_at", monthStart),
+        supabase.from("erp_service_orders").select("labor_cost, discount, erp_service_order_items(quantity, unit_price)").gte("created_at", monthStart).neq("status", "cancelled"),
+      ]);
       const dailyRevenueRes = days7.map((date) => ({
         date,
         pdv: (pdvDailyRes.data ?? []).filter((s) => s.created_at?.startsWith(date)).reduce((sum, s) => sum + (s.total ?? 0), 0),
         osCount: (osDailyRes.data ?? []).filter((o) => o.created_at?.startsWith(date)).length,
       }));
       const monthlyPDVTotal = (monthlyRes.data ?? []).reduce((sum, s) => sum + (s.total ?? 0), 0);
-      return { salesRes, osRes, overdueOSRes, stockRes, recentSalesRes, dailyRevenueRes, monthlyPDVTotal };
+      const monthlyOSTotal = (monthlyOSRes.data ?? []).reduce((sum: number, o: any) => {
+        const itemsTotal = (o.erp_service_order_items ?? []).reduce(
+          (s: number, i: any) => s + (i.quantity ?? 0) * (i.unit_price ?? 0), 0
+        );
+        return sum + (o.labor_cost ?? 0) + itemsTotal - (o.discount ?? 0);
+      }, 0);
+      return { salesRes, osRes, overdueOSRes, stockRes, recentSalesRes, dailyRevenueRes, monthlyPDVTotal, monthlyOSTotal };
     },
     ["dashboard", todayISO],
     { revalidate: TTL, tags: ["dashboard", "sales", "service-orders", "products"] }

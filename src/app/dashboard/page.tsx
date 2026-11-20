@@ -11,7 +11,7 @@ export default async function DashboardPage() {
   today.setHours(0, 0, 0, 0);
   const todayISO = today.toISOString();
 
-  const { salesRes, osRes, overdueOSRes, stockRes, recentSalesRes, dailyRevenueRes, monthlyPDVTotal } = await getCachedDashboard(todayISO);
+  const { salesRes, osRes, overdueOSRes, stockRes, recentSalesRes, dailyRevenueRes, monthlyPDVTotal, monthlyOSTotal } = await getCachedDashboard(todayISO);
 
   const todaySalesTotal = (salesRes.data ?? []).reduce(
     (sum, s) => sum + (s.total ?? 0),
@@ -24,6 +24,7 @@ export default async function DashboardPage() {
   const dailyRevenue = dailyRevenueRes ?? [];
   const maxPdv = Math.max(...dailyRevenue.map((d) => d.pdv), 1);
   const monthPDV = monthlyPDVTotal ?? 0;
+  const monthOS = monthlyOSTotal ?? 0;
 
   const stats = [
     { label: "Vendas hoje", value: formatCurrency(todaySalesTotal), icon: "💰", color: "text-green-400", href: "/pdv" },
@@ -144,9 +145,18 @@ export default async function DashboardPage() {
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
               <div>
                 <h2 className="text-sm font-semibold text-gray-400">Faturamento PDV — últimos 7 dias</h2>
-                {monthPDV > 0 && (
+                {(monthPDV > 0 || monthOS > 0) && (
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Total do mês: <span className="text-green-400 font-semibold">{formatCurrency(monthPDV)}</span>
+                    Mês:{" "}
+                    <span className="text-green-400 font-semibold">PDV {formatCurrency(monthPDV)}</span>
+                    {monthOS > 0 && (
+                      <>
+                        {" · "}
+                        <span className="text-purple-400 font-semibold">OS {formatCurrency(monthOS)}</span>
+                        {" · total "}
+                        <span className="text-brand-yellow font-semibold">{formatCurrency(monthPDV + monthOS)}</span>
+                      </>
+                    )}
                   </p>
                 )}
               </div>
