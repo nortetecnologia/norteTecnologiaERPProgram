@@ -43,6 +43,7 @@ O middleware redireciona para `/login` qualquer acesso não autenticado.
 | `/relatorios/exportar` | Route Handler GET — exporta CSV de vendas PDV ou OS com os mesmos filtros da tela de relatórios |
 | `/funcionarios` | Listagem e gestão de funcionários e cargos |
 | `/relatorios` | Relatórios de vendas e OS com exportação CSV |
+| `/busca` | Busca universal: clientes, OS e produtos em uma única pesquisa; suporte offline |
 
 ---
 

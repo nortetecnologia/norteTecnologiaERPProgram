@@ -10,7 +10,7 @@
 
 - **Estágio:** Sistema em produção. Todos os módulos da Fase 1 implementados e funcionando. Fase 1+ em andamento.
 - **Distribuição:** App desktop Windows (instalador `.exe` via GitHub Releases, auto-update com `electron-updater`)
-- **Última atividade:** 2026-11-20 — OS busca expandida + total mensal PDV no dashboard.
+- **Última atividade:** 2026-11-20 — Busca universal (/busca) com ícone no cabeçalho.
 - **Situação geral:** Sistema operacional. Migrations aplicadas no Supabase. Cloudinary integrado. Upload de imagens nas OS funcionando. Autenticação por `app_metadata.erp_role`. Banco de dados compartilhado com o site — colunas corretas: `is_active`, `stock`. Imagens em tabela separada `product_images(id, product_id, url, alt, is_primary, position)`.
 - **Próxima etapa:** Fase 2 — relatórios avançados por período, lucratividade, NF-e.
 
@@ -19,15 +19,25 @@
 ## 2. Última atualização
 
 - **Data:** 2026-11-20
-- **Versão:** v0.5.7
-- **Atividade:** Feat — OS busca expandida (equip./serial/nº) + serial na listagem + total mensal no dashboard.
+- **Versão:** v0.5.8
+- **Atividade:** Feat — busca universal (`/busca`) acessível pelo ícone de lupa no cabeçalho.
 - **Resultado:**
-  - **`/os`** — busca agora pesquisa em `title`, `equipment`, `serial_number` e `number` (via `.or()` PostgREST no modo online; filtro manual no modo offline). Serial exibido no subtítulo do card. Label atualizado para indicar os campos buscados.
-  - **`/dashboard`** — total do mês (PDV) exibido abaixo do título do gráfico de 7 dias. `getCachedDashboard` extendido com `monthlyPDVTotal` (consulta separada por mês; suporte offline incluso).
+  - **`/busca`** — nova rota de busca universal: pesquisa simultaneamente em clientes (nome, telefone, CPF/CNPJ), OS (título, equipamento, serial, nº) e produtos (nome, SKU, código de barras). Resultados agrupados por tipo com links diretos. Suporte offline via `readOfflineData()`.
+  - **`AppHeader`** — ícone de lupa + link "Buscar" (texto visível em sm+) adicionado antes do botão Sair.
 
 ---
 
 ## 3. Implementações concluídas
+
+### 2026-11-20 — Feat: busca universal /busca + ícone no cabeçalho (v0.5.8)
+
+- **Objetivo:** Localização rápida de qualquer registro (cliente, OS, produto) sem navegar por menus.
+- **Implementação:**
+  1. **`src/app/busca/page.tsx`** (novo) — Server Component que recebe `q` (mínimo 2 chars). Dois paths: offline (filtra `readOfflineData()` manualmente) e online (3 queries paralelas com `.or()` PostgREST). Exibe resultados agrupados por seção: Clientes (nome/fone/CPF), OS (nº OS, título, equip., serial, status badge), Produtos (nome, SKU, estoque). Busca com `ilike` case-insensitive; nº OS por igualdade.
+  2. **`src/components/layout/AppHeader.tsx`** — adicionado `<Link href="/busca">` com ícone SVG de lupa e texto "Buscar" (oculto em mobile). Botão Sair movido para dentro do `<div>` de ações do lado direito.
+- **Suporte offline:** filtro manual no branch `shouldUseLocalData()`.
+
+---
 
 ### 2026-11-20 — Feat: OS busca expandida + total mensal no dashboard (v0.5.7)
 
