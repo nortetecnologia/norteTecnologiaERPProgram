@@ -170,7 +170,13 @@ export const getCachedStock = () => {
       lowStockRes: { data: activeProducts.filter((p: any) => p.stock < 5).sort((a: any, b: any) => a.stock - b.stock).slice(0, 50), error: null },
       noImageRes: { data: products.filter((p: any) => p.product_type === "product" && !imgProductIds.has(p.id)).slice(0, 50), error: null },
       noSkuRes: { data: products.filter((p: any) => p.product_type === "product" && !p.sku).slice(0, 50), error: null },
-      recentMovRes: { data: movements.sort((a: any, b: any) => b.created_at?.localeCompare(a.created_at)).slice(0, 10), error: null },
+      recentMovRes: {
+        data: movements.sort((a: any, b: any) => b.created_at?.localeCompare(a.created_at)).slice(0, 10).map((m: any) => {
+          const prod = products.find((p: any) => p.id === m.product_id);
+          return { ...m, products: prod ? { id: prod.id, name: prod.name, sku: prod.sku } : null };
+        }),
+        error: null,
+      },
     });
   }
   return unstable_cache(
@@ -181,7 +187,7 @@ export const getCachedStock = () => {
         supabase.from("products").select("id, name, sku, stock, price, categories(name)").eq("is_active", true).eq("product_type", "product").lt("stock", 5).order("stock").limit(50),
         supabase.from("products").select("id, name, sku, stock, is_active, product_images(id)").eq("product_type", "product").limit(200),
         supabase.from("products").select("id, name, stock, is_active").eq("product_type", "product").is("sku", null).limit(50),
-        supabase.from("erp_stock_movements").select("id, type, quantity, reason, created_at, products(name, sku)").order("created_at", { ascending: false }).limit(10),
+        supabase.from("erp_stock_movements").select("id, type, quantity, reason, created_at, products(id, name, sku)").order("created_at", { ascending: false }).limit(10),
       ]);
       const noImageRes = {
         data: (noImageRaw.data ?? []).filter((p: any) => !p.product_images?.length),

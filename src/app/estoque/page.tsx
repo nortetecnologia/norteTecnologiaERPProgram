@@ -68,7 +68,10 @@ export default async function EstoquePage() {
                     <td className="px-5 py-2.5 text-right text-gray-300 hidden md:table-cell">
                       {formatCurrency(p.price)}
                     </td>
-                    <td className="px-5 py-2.5 text-right">
+                    <td className="px-5 py-2.5 text-right flex gap-3 justify-end">
+                      <Link href={`/produtos/${p.id}`} className="text-xs text-gray-400 hover:text-brand-yellow">
+                        Histórico
+                      </Link>
                       <Link href={`/produtos/${p.id}/editar`} className="text-xs text-gray-400 hover:text-brand-yellow">
                         Editar
                       </Link>
@@ -92,7 +95,13 @@ export default async function EstoquePage() {
               {recentMov.map((m: any) => (
                 <div key={m.id} className="px-5 py-3 flex items-center justify-between">
                   <div>
-                    <span className="text-sm text-white">{m.products?.name ?? "—"}</span>
+                    {m.products?.id ? (
+                      <Link href={`/produtos/${m.products.id}`} className="text-sm text-white hover:text-brand-yellow transition-colors">
+                        {m.products.name}
+                      </Link>
+                    ) : (
+                      <span className="text-sm text-white">{m.products?.name ?? "—"}</span>
+                    )}
                     <span className="text-xs text-gray-500 ml-2">{m.reason}</span>
                   </div>
                   <span className={`text-sm font-bold ${m.type === "in" ? "text-green-400" : m.type === "out" ? "text-red-400" : "text-gray-400"}`}>

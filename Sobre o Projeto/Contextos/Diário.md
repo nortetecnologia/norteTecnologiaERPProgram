@@ -8,25 +8,45 @@
 
 ## 1. Estado atual do projeto
 
-- **Estágio:** Sistema em produção. Todos os módulos da Fase 1 implementados e funcionando.
+- **Estágio:** Sistema em produção. Todos os módulos da Fase 1 implementados e funcionando. Fase 1+ em andamento.
 - **Distribuição:** App desktop Windows (instalador `.exe` via GitHub Releases, auto-update com `electron-updater`)
-- **Última atividade:** 2026-11-17 — Mecanismo de reset de senha (Esqueci a senha).
+- **Última atividade:** 2026-11-20 — Detalhe de produto com histórico de estoque + gestão de usuários ERP.
 - **Situação geral:** Sistema operacional. Migrations aplicadas no Supabase. Cloudinary integrado. Upload de imagens nas OS funcionando. Autenticação por `app_metadata.erp_role`. Banco de dados compartilhado com o site — colunas corretas: `is_active`, `stock`. Imagens em tabela separada `product_images(id, product_id, url, alt, is_primary, position)`.
-- **Próxima etapa:** Fase 2 — Roles diferenciados no dashboard (admin vs. operador), relatórios avançados, NF-e.
+- **Próxima etapa:** Fase 1+ continuada (ver lista de sugestões) → Fase 2 — relatórios avançados, NF-e.
 
 ---
 
 ## 2. Última atualização
 
-- **Data:** 2026-11-17
-- **Atividade:** Feat — mecanismo de reset de senha.
-- **Commit:** `434d7a9`
-- **Resultado:** Fluxo completo de recuperação de senha: `/esqueci-senha` (formulário + validação de e-mail + role ERP), `/redefinir-senha` (troca PKCE + atualização de senha + logout), link "Esqueci a senha" no login com banner de sucesso.
-- **Situação:** Requer configuração manual no Supabase Auth → URL Configuration (Site URL + Redirect URLs). Ver `Segurança.md`.
+- **Data:** 2026-11-20
+- **Atividade:** Feat — detalhe de produto com histórico de estoque + gestão de usuários ERP.
+- **Resultado:**
+  - `/produtos/[id]` — nova rota com dados do produto, estatísticas (entradas/saídas totais) e tabela completa de movimentações do estoque (tipo, motivo, referência, quantidade, data). Estoque → link "Histórico" para cada produto crítico.
+  - `/configuracoes/usuarios` — nova rota admin para listar usuários com acesso ERP, alterar role (admin/operador) e conceder/revogar acesso. Acessível via botão em Configurações.
+  - Auditoria confirmou que edição completa de OS e busca por código de barras no PDV JÁ EXISTIAM.
 
 ---
 
 ## 3. Implementações concluídas
+
+### 2026-11-20 — Feat: detalhe de produto + gestão de usuários ERP
+
+- **Objetivo:** Implementar as duas funcionalidades de alta prioridade confirmadas como ausentes após auditoria do código.
+- **Auditoria prévia:**
+  - Edição completa de OS (itens, `issued_by`, `assigned_to`) → JÁ EXISTIA em `/os/[id]/editar`
+  - Busca por código de barras no PDV → JÁ EXISTIA via `handleSearchKeyDown` + match exato em `PDVClient.tsx`
+  - Histórico de movimentações por produto → FALTAVA (rota `/produtos/[id]` inexistente)
+  - Gestão de usuários ERP → FALTAVA (sem tela; admin precisava acessar Supabase Dashboard)
+- **Implementação:**
+  1. **`src/app/produtos/[id]/page.tsx`** (novo) — Server Component com detalhe do produto: imagem, status, tipo, dados (SKU, barcode, marca, categoria), 4 cards (preço, estoque atual, total entradas, total saídas), tabela de movimentações (`erp_stock_movements`) com tipo colorido, motivo, referência e data.
+  2. **`src/app/configuracoes/usuarios/page.tsx`** (novo) — Server Component admin: lista todos os usuários com `erp_role` via `auth.admin.listUsers()`, badge de role, formulário inline para alterar role (admin/operador/remover acesso), seção para conceder acesso a usuários existentes sem role ERP. Acessível via botão em `/configuracoes`.
+  3. **`src/app/configuracoes/usuarios/actions.ts`** (novo) — `setUserRoleAction`: Server Action que chama `setUserERPRole()` do `lib/auth.ts`, protegida por `requireAdmin()`.
+  4. **`src/app/configuracoes/page.tsx`** — adicionado botão "Gerenciar usuários →" no cabeçalho.
+  5. **`src/app/estoque/page.tsx`** — adicionado link "Histórico" para `/produtos/[id]` na tabela de estoque crítico; movimentações recentes linkam para o produto.
+  6. **`src/lib/queries.ts`** — query `recentMovRes` passa a incluir `id` no join `products(id, name, sku)`; cache offline corrigido para incluir `id` nos produtos das movimentações.
+- **TypeScript:** `tsc --noEmit` sem erros.
+
+---
 
 ### 2026-11-17 — Feat: mecanismo de reset de senha
 
@@ -239,13 +259,30 @@
 
 | Item | Prioridade | Detalhe |
 |------|-----------|--------|
+| OS cancelada — motivo | MÉDIA | Campo `cancelled_reason TEXT` na OS + exibição no relatório |
+| Dashboard — OS com prazo vencido | MÉDIA | Indicador "X OS com `estimated_at` < hoje" |
+| PDV — rascunho / carrinho persistido | MÉDIA | Salvar carrinho em localStorage ao navegar por engano |
+| Relatórios — exportar CSV | MÉDIA | Rota `/relatorios/exportar?...` retornando CSV |
+| Clientes — busca por telefone/CPF | MÉDIA | Expandir `ilike` para `phone` e `cpf_cnpj` |
+| Restrições de operador em ações destrutivas | MÉDIA | `requireAdmin()` em exclusão de OS, configurações |
+| Relatório — faturamento combinado PDV + OS | MÉDIA | View consolidada "total do mês" |
+| Entrada de mercadoria | MÉDIA | Tela de entrada de estoque com fornecedor + custo |
 | Relatórios avançados | BAIXA | Fase 2 — faturamento, lucratividade |
 | Emissão de NF | BAIXA | Fase 2 — Focus NFe ou NFe.io |
 
 ---
 
-## 5. Próximas etapas (Fase 2)
+## 5. Próximas etapas
 
+### Fase 1+ (melhorias operacionais)
+1. **Motivo de cancelamento da OS** — campo `cancelled_reason`
+2. **Dashboard — OS com prazo vencido** — indicador visual
+3. **PDV — rascunho de venda** — persistência do carrinho
+4. **Relatórios — exportar CSV** — rota simples de download
+5. **Busca de clientes por telefone/CPF**
+6. **Entrada de mercadoria** — ciclo completo de estoque
+
+### Fase 2
 1. **Relatórios avançados** — faturamento por período, OS por status, ticket médio
 2. **Emissão de NF-e/NFS-e** — integração com Focus NFe ou NFe.io
 

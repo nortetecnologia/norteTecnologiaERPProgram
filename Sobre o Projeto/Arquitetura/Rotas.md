@@ -27,6 +27,7 @@ O middleware redireciona para `/login` qualquer acesso não autenticado.
 | `/clientes/[id]/editar` | Edição de cliente |
 | `/produtos` | Listagem de produtos e serviços com estoque |
 | `/produtos/novo` | Cadastro de produto/serviço |
+| `/produtos/[id]` | Detalhe do produto: dados, estatísticas e histórico completo de movimentações de estoque |
 | `/produtos/[id]/editar` | Edição de produto/serviço |
 | `/estoque` | Visão geral de estoque: alertas, sem SKU, sem imagem |
 | `/os` | Listagem de Ordens de Serviço |
@@ -36,7 +37,8 @@ O middleware redireciona para `/login` qualquer acesso não autenticado.
 | `/os/[id]/imprimir` | Impressão da OS (com ou sem valores) |
 | `/pdv` | Ponto de Venda |
 | `/pdv/[id]/recibo` | Impressão de recibo de venda |
-| `/configuracoes` | Configurações do ERP (formas de pagamento) |
+| `/configuracoes` | Configurações do ERP (dados da empresa, formas de pagamento) — somente admin |
+| `/configuracoes/usuarios` | Gestão de usuários com acesso ao ERP: listar, alterar role (admin/operador), conceder/revogar acesso — somente admin |
 | `/funcionarios` | Listagem e gestão de funcionários e cargos |
 | `/relatorios` | Relatórios de vendas e OS (básico — Fase 1) |
 
@@ -55,6 +57,7 @@ O middleware redireciona para `/login` qualquer acesso não autenticado.
 | `deleteCustomer` | `/clientes/actions.ts` | Excluir cliente |
 | `createProduct` | `/produtos/actions.ts` | Criar produto (reutiliza lógica do site) |
 | `updateProduct` | `/produtos/actions.ts` | Editar produto |
+| `setUserRoleAction` | `/configuracoes/usuarios/actions.ts` | Conceder/revogar/alterar role ERP de um usuário Supabase (somente admin) |
 | `adjustStock` | `/estoque/actions.ts` | Ajuste manual de estoque |
 | `createServiceOrder` | `/os/actions.ts` | Criar OS (inclui salvar `images[]`) |
 | `updateOSStatus` | `/os/actions.ts` | Mudar status da OS |
