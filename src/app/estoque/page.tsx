@@ -20,9 +20,17 @@ export default async function EstoquePage() {
   return (
     <AppLayout>
       <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <h1 className="text-2xl font-bold text-white">Estoque</h1>
-          <AjusteEstoqueForm products={allProducts as any} />
+          <div className="flex items-center gap-2">
+            <Link
+              href="/estoque/entrada"
+              className="text-sm px-4 py-2 bg-green-600/20 border border-green-600/50 text-green-400 rounded-lg hover:bg-green-600/30 transition-colors"
+            >
+              + Entrada de mercadoria
+            </Link>
+            <AjusteEstoqueForm products={allProducts as any} />
+          </div>
         </div>
 
         {/* Alerts */}

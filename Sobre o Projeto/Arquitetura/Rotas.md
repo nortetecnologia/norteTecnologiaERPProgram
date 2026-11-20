@@ -30,6 +30,7 @@ O middleware redireciona para `/login` qualquer acesso não autenticado.
 | `/produtos/[id]` | Detalhe do produto: dados, estatísticas e histórico completo de movimentações de estoque |
 | `/produtos/[id]/editar` | Edição de produto/serviço |
 | `/estoque` | Visão geral de estoque: alertas, sem SKU, sem imagem |
+| `/estoque/entrada` | Entrada de mercadoria: registra lotes de estoque com fornecedor, referência/NF, custo unitário; suporte offline |
 | `/os` | Listagem de Ordens de Serviço |
 | `/os/nova` | Criação de nova OS |
 | `/os/[id]` | Detalhes da OS |
@@ -61,6 +62,7 @@ O middleware redireciona para `/login` qualquer acesso não autenticado.
 | `setUserRoleAction` | `/configuracoes/usuarios/actions.ts` | Conceder/revogar/alterar role ERP de um usuário Supabase (somente admin) |
 | `updateOSStatus` | `/os/actions.ts` | Mudar status da OS; ao cancelar, aceita `cancelledReason` e salva em `cancelled_reason` |
 | `adjustStock` | `/estoque/actions.ts` | Ajuste manual de estoque |
+| `processEntrada` | `/estoque/entrada/actions.ts` | Entrada em lote de mercadoria com fornecedor, referência e custo; suporte offline |
 | `createServiceOrder` | `/os/actions.ts` | Criar OS (inclui salvar `images[]`) |
 | `updateOSStatus` | `/os/actions.ts` | Mudar status da OS |
 | `deleteServiceOrder` | `/os/actions.ts` | Excluir OS |

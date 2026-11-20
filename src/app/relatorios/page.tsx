@@ -158,6 +158,7 @@ export default async function RelatoriosPage({
       return s + items + (o.labor_cost ?? 0) - (o.discount ?? 0);
     }, 0);
     const osCount = osList.length;
+    const totalGeral = pdvTotal + osTotal;
 
     const paymentByMethod: Record<string, number> = {};
     for (const p of payments) {
@@ -295,12 +296,24 @@ export default async function RelatoriosPage({
             )}
           </div>
 
+          {/* Faturamento combinado */}
+          <div className="bg-brand-gray-dark border border-brand-yellow/40 rounded-xl p-5 mb-4 flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <div className="text-xs text-gray-400 mb-1">Faturamento total do período (PDV + OS)</div>
+              <div className="text-3xl font-bold text-brand-yellow">{formatCurrency(totalGeral)}</div>
+            </div>
+            <div className="flex gap-6 text-sm text-gray-400">
+              <div>PDV <span className="text-green-400 font-semibold">{formatCurrency(pdvTotal)}</span></div>
+              <div>OS <span className="text-purple-400 font-semibold">{formatCurrency(osTotal)}</span></div>
+            </div>
+          </div>
+
           {/* Summary cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             {[
               { label: "Receita PDV", value: formatCurrency(pdvTotal), color: "text-green-400" },
               { label: "Vendas PDV", value: String(pdvCount), color: "text-blue-400" },
-              { label: "Ticket médio", value: formatCurrency(pdvTicket), color: "text-brand-yellow" },
+              { label: "Ticket médio PDV", value: formatCurrency(pdvTicket), color: "text-brand-yellow" },
               { label: "OS faturadas", value: formatCurrency(osTotal), color: "text-purple-400" },
             ].map((s) => (
               <div key={s.label} className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl p-5">
