@@ -16,6 +16,8 @@ export default async function EstoquePage() {
   const noImage = noImageRes.data ?? [];
   const noSku = noSkuRes.data ?? [];
   const recentMov = recentMovRes.data ?? [];
+  const inventoryValue = (allProducts as any[]).reduce((sum, p) => sum + (p.stock ?? 0) * (p.price ?? 0), 0);
+  const totalUnits = (allProducts as any[]).reduce((sum, p) => sum + (p.stock ?? 0), 0);
 
   return (
     <AppLayout>
@@ -30,6 +32,24 @@ export default async function EstoquePage() {
               + Entrada de mercadoria
             </Link>
             <AjusteEstoqueForm products={allProducts as any} />
+          </div>
+        </div>
+
+        {/* Inventory value summary */}
+        <div className="bg-brand-gray-dark border border-brand-yellow/30 rounded-xl p-5 mb-4 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <div className="text-xs text-gray-400 mb-1">Valor total do inventário (preço de venda)</div>
+            <div className="text-3xl font-bold text-brand-yellow">{formatCurrency(inventoryValue)}</div>
+          </div>
+          <div className="flex gap-6 text-sm text-gray-400">
+            <div>
+              <span className="text-gray-500 text-xs block mb-0.5">Produtos ativos</span>
+              <span className="text-white font-semibold">{allProducts.length}</span>
+            </div>
+            <div>
+              <span className="text-gray-500 text-xs block mb-0.5">Unidades totais</span>
+              <span className="text-white font-semibold">{totalUnits.toLocaleString("pt-BR")}</span>
+            </div>
           </div>
         </div>
 

@@ -11,7 +11,7 @@ export default async function DashboardPage() {
   today.setHours(0, 0, 0, 0);
   const todayISO = today.toISOString();
 
-  const { salesRes, osRes, overdueOSRes, stockRes, recentSalesRes } = await getCachedDashboard(todayISO);
+  const { salesRes, osRes, overdueOSRes, stockRes, recentSalesRes, dailyRevenueRes } = await getCachedDashboard(todayISO);
 
   const todaySalesTotal = (salesRes.data ?? []).reduce(
     (sum, s) => sum + (s.total ?? 0),
@@ -21,6 +21,8 @@ export default async function DashboardPage() {
   const overdueOS = overdueOSRes?.count ?? 0;
   const lowStock = stockRes.count ?? 0;
   const recentSales = recentSalesRes.data ?? [];
+  const dailyRevenue = dailyRevenueRes ?? [];
+  const maxPdv = Math.max(...dailyRevenue.map((d) => d.pdv), 1);
 
   const stats = [
     { label: "Vendas hoje", value: formatCurrency(todaySalesTotal), icon: "💰", color: "text-green-400", href: "/pdv" },
@@ -134,6 +136,44 @@ export default async function DashboardPage() {
             </div>
           );
         })()}
+
+        {/* Daily revenue chart */}
+        {dailyRevenue.some((d) => d.pdv > 0 || d.osCount > 0) && (
+          <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl p-5 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-gray-400">Faturamento PDV — últimos 7 dias</h2>
+              <Link href="/relatorios" className="text-xs text-gray-500 hover:text-brand-yellow transition-colors">
+                Ver relatórios →
+              </Link>
+            </div>
+            <div className="flex items-end gap-1.5 h-24">
+              {dailyRevenue.map((day) => {
+                const heightPct = day.pdv > 0 ? Math.max((day.pdv / maxPdv) * 100, 4) : 2;
+                const [, m, dayNum] = day.date.split("-");
+                const label = `${dayNum}/${m}`;
+                return (
+                  <div key={day.date} className="flex flex-col items-center gap-1 flex-1 h-full justify-end">
+                    <div
+                      title={`PDV: ${formatCurrency(day.pdv)}${day.osCount > 0 ? ` · ${day.osCount} OS` : ""}`}
+                      className={`w-full rounded-t transition-colors ${day.pdv > 0 ? "bg-green-500/40 hover:bg-green-500/60" : "bg-brand-gray-mid"}`}
+                      style={{ height: `${heightPct}%` }}
+                    />
+                    <span className="text-[9px] text-gray-500 leading-none">{label}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-3 flex items-center gap-4 text-xs text-gray-500">
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-3 h-2 bg-green-500/40 rounded-sm" />
+                PDV (passe o mouse para ver o valor)
+              </span>
+              {dailyRevenue.some((d) => d.osCount > 0) && (
+                <span>OS abertas: {dailyRevenue.reduce((s, d) => s + d.osCount, 0)} no período</span>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Recent sales */}
         <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl p-5">

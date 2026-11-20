@@ -10,23 +10,36 @@
 
 - **Estágio:** Sistema em produção. Todos os módulos da Fase 1 implementados e funcionando. Fase 1+ em andamento.
 - **Distribuição:** App desktop Windows (instalador `.exe` via GitHub Releases, auto-update com `electron-updater`)
-- **Última atividade:** 2026-11-20 — Faturamento combinado PDV+OS + entrada de mercadoria.
+- **Última atividade:** 2026-11-20 — Gráfico de faturamento no dashboard + valor total do inventário no estoque.
 - **Situação geral:** Sistema operacional. Migrations aplicadas no Supabase. Cloudinary integrado. Upload de imagens nas OS funcionando. Autenticação por `app_metadata.erp_role`. Banco de dados compartilhado com o site — colunas corretas: `is_active`, `stock`. Imagens em tabela separada `product_images(id, product_id, url, alt, is_primary, position)`.
-- **Próxima etapa:** Fase 1+ continuada (ver lista de sugestões) → Fase 2 — relatórios avançados, NF-e.
+- **Próxima etapa:** Fase 2 — relatórios avançados por período, NF-e.
 
 ---
 
 ## 2. Última atualização
 
 - **Data:** 2026-11-20
-- **Atividade:** Feat — faturamento combinado PDV+OS em relatórios + entrada de mercadoria.
+- **Versão:** v0.5.6
+- **Atividade:** Feat — gráfico de faturamento diário no dashboard + valor total do inventário no estoque.
 - **Resultado:**
-  - **`/relatorios`** (aba Vendas PDV) — banner "Faturamento total do período (PDV + OS)" com destaque amarelo mostrando o somatório PDV + OS antes dos 4 cards.
-  - **`/estoque/entrada`** — nova rota para entrada de mercadoria com suporte offline: form com fornecedor, referência/NF, itens dinâmicos (produto, quantidade, custo unitário), preview do estoque após entrada. Registra movimentação `erp_stock_movements` tipo "in". Link "Entrada de mercadoria" adicionado ao cabeçalho de `/estoque`.
+  - **`/dashboard`** — gráfico de barras CSS puro mostrando faturamento PDV dos últimos 7 dias (hover mostra valor exato). Aparece somente se houver dados. Query `getCachedDashboard` extendida com `dailyRevenueRes` (PDV por dia + contagem de OS por dia), suporte offline incluso.
+  - **`/estoque`** — banner amarelo "Valor total do inventário" = somatório de `stock × price` de todos os produtos ativos, exibindo também total de produtos e total de unidades. Campo `price` adicionado ao select de `getCachedStock` (online path). Offline usa dados já disponíveis no JSON local.
 
 ---
 
 ## 3. Implementações concluídas
+
+### 2026-11-20 — Feat: gráfico de faturamento + valor de inventário (v0.5.6)
+
+- **Objetivo:** Melhorar visibilidade de dados — dashboard com trend visual e estoque com valor contábil.
+- **Implementação:**
+  1. **`src/lib/queries.ts`** — `buildLast7Days(todayISO)` helper (puro, sem efeitos). `getCachedDashboard` retorna agora `dailyRevenueRes: { date, pdv, osCount }[]` via duas queries adicionais (`erp_pdv_sales` e `erp_service_orders` dos últimos 7 dias). Offline computa a partir do JSON local. `getCachedStock` passa a incluir `price` no select (online path).
+  2. **`src/app/dashboard/page.tsx`** — extrai `dailyRevenue` e `maxPdv`. Renderiza gráfico de barras CSS puro (sem biblioteca) acima das últimas vendas: container `h-24 flex items-end`, barras com `height: X%` relativo à maior barra, tooltip via `title=""` nativo (hover). Legenda textual abaixo. Oculto automaticamente se todos os valores forem zero.
+  3. **`src/app/estoque/page.tsx`** — calcula `inventoryValue` e `totalUnits` a partir de `allProductsRes`. Banner amarelo acima dos cards de alerta com 3 métricas: valor total, produtos ativos, unidades totais.
+- **Suporte offline:** `dailyRevenueRes` usa `shouldUseLocalData()` / `readOfflineData()` existentes. Valor de inventário usa dados de `allProductsRes` que já vinha do JSON local.
+- **TypeScript:** sem `any` extras além dos já existentes.
+
+---
 
 ### 2026-11-20 — Feat: detalhe de produto + gestão de usuários ERP
 

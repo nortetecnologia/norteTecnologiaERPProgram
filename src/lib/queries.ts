@@ -4,6 +4,15 @@ import { shouldUseLocalData, readOfflineData } from "./offline";
 
 const TTL = 300;
 
+function buildLast7Days(todayISO: string): string[] {
+  const today = new Date(todayISO);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(d.getDate() - (6 - i));
+    return d.toISOString().split("T")[0];
+  });
+}
+
 export const getCachedDashboard = (todayISO: string) => {
   if (shouldUseLocalData()) {
     const d = readOfflineData();
@@ -15,25 +24,41 @@ export const getCachedDashboard = (todayISO: string) => {
     const overdueOS = openOS.filter((o: any) => o.estimated_at && o.estimated_at < todayISO);
     const lowStock = products.filter((p: any) => p.is_active && p.product_type === "product" && p.stock < 5);
     const recentSales = [...sales].sort((a, b) => b.created_at?.localeCompare(a.created_at)).slice(0, 5);
+    const days7 = buildLast7Days(todayISO);
+    const dailyRevenue = days7.map((date) => ({
+      date,
+      pdv: sales.filter((s) => s.created_at?.startsWith(date)).reduce((sum: number, s: any) => sum + (s.total ?? 0), 0),
+      osCount: os.filter((o) => o.created_at?.startsWith(date)).length,
+    }));
     return Promise.resolve({
       salesRes: { data: todaySales, error: null, count: todaySales.length },
       osRes: { data: openOS, error: null, count: openOS.length },
       overdueOSRes: { data: overdueOS, error: null, count: overdueOS.length },
       stockRes: { data: lowStock, error: null, count: lowStock.length },
       recentSalesRes: { data: recentSales, error: null },
+      dailyRevenueRes: dailyRevenue,
     });
   }
   return unstable_cache(
     async () => {
       const supabase = createAdminClient();
-      const [salesRes, osRes, overdueOSRes, stockRes, recentSalesRes] = await Promise.all([
+      const days7 = buildLast7Days(todayISO);
+      const startISO = days7[0] + "T00:00:00.000Z";
+      const [salesRes, osRes, overdueOSRes, stockRes, recentSalesRes, pdvDailyRes, osDailyRes] = await Promise.all([
         supabase.from("erp_pdv_sales").select("total").gte("created_at", todayISO),
         supabase.from("erp_service_orders").select("id", { count: "exact" }).in("status", ["awaiting", "in_progress"]),
         supabase.from("erp_service_orders").select("id", { count: "exact" }).in("status", ["awaiting", "in_progress"]).not("estimated_at", "is", null).lt("estimated_at", todayISO),
         supabase.from("products").select("id", { count: "exact" }).lt("stock", 5).eq("is_active", true).eq("product_type", "product"),
         supabase.from("erp_pdv_sales").select("id, sale_number, total, created_at").order("created_at", { ascending: false }).limit(5),
+        supabase.from("erp_pdv_sales").select("created_at, total").gte("created_at", startISO),
+        supabase.from("erp_service_orders").select("created_at").gte("created_at", startISO),
       ]);
-      return { salesRes, osRes, overdueOSRes, stockRes, recentSalesRes };
+      const dailyRevenueRes = days7.map((date) => ({
+        date,
+        pdv: (pdvDailyRes.data ?? []).filter((s) => s.created_at?.startsWith(date)).reduce((sum, s) => sum + (s.total ?? 0), 0),
+        osCount: (osDailyRes.data ?? []).filter((o) => o.created_at?.startsWith(date)).length,
+      }));
+      return { salesRes, osRes, overdueOSRes, stockRes, recentSalesRes, dailyRevenueRes };
     },
     ["dashboard", todayISO],
     { revalidate: TTL, tags: ["dashboard", "sales", "service-orders", "products"] }
@@ -186,7 +211,7 @@ export const getCachedStock = () => {
     async () => {
       const supabase = createAdminClient();
       const [allProductsRes, lowStockRes, noImageRaw, noSkuRes, recentMovRes] = await Promise.all([
-        supabase.from("products").select("id, name, sku, barcode, stock").eq("is_active", true).eq("product_type", "product").order("name").limit(500),
+        supabase.from("products").select("id, name, sku, barcode, stock, price").eq("is_active", true).eq("product_type", "product").order("name").limit(500),
         supabase.from("products").select("id, name, sku, stock, price, categories(name)").eq("is_active", true).eq("product_type", "product").lt("stock", 5).order("stock").limit(50),
         supabase.from("products").select("id, name, sku, stock, is_active, product_images(id)").eq("product_type", "product").limit(200),
         supabase.from("products").select("id, name, stock, is_active").eq("product_type", "product").is("sku", null).limit(50),
