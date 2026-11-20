@@ -11,19 +11,21 @@ export default async function DashboardPage() {
   today.setHours(0, 0, 0, 0);
   const todayISO = today.toISOString();
 
-  const { salesRes, osRes, stockRes, recentSalesRes } = await getCachedDashboard(todayISO);
+  const { salesRes, osRes, overdueOSRes, stockRes, recentSalesRes } = await getCachedDashboard(todayISO);
 
   const todaySalesTotal = (salesRes.data ?? []).reduce(
     (sum, s) => sum + (s.total ?? 0),
     0
   );
   const openOS = osRes.count ?? 0;
+  const overdueOS = overdueOSRes?.count ?? 0;
   const lowStock = stockRes.count ?? 0;
   const recentSales = recentSalesRes.data ?? [];
 
   const stats = [
     { label: "Vendas hoje", value: formatCurrency(todaySalesTotal), icon: "💰", color: "text-green-400", href: "/pdv" },
     { label: "OS abertas", value: String(openOS), icon: "🔧", color: "text-blue-400", href: "/os" },
+    ...(overdueOS > 0 ? [{ label: "OS com prazo vencido", value: String(overdueOS), icon: "🚨", color: "text-red-400", href: "/os" }] : []),
     { label: "Estoque crítico", value: String(lowStock), icon: "⚠️", color: "text-yellow-400", href: "/estoque" },
   ];
 
@@ -38,7 +40,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <div className={`grid grid-cols-2 gap-4 mb-8 ${stats.length === 4 ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
           {stats.map((stat) => (
             <Link
               key={stat.label}

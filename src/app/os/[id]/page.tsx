@@ -75,6 +75,13 @@ export default async function OSDetailPage({ params }: { params: Promise<{ id: s
           <OSStatusForm osId={os.id} currentStatus={os.status} />
         </div>
 
+        {os.status === "cancelled" && os.cancelled_reason && (
+          <div className="bg-red-950/40 border border-red-800/50 rounded-xl p-4 mb-4">
+            <div className="text-xs text-red-400 font-medium mb-1">Motivo do cancelamento</div>
+            <div className="text-sm text-red-200">{os.cancelled_reason}</div>
+          </div>
+        )}
+
         {/* Details */}
         <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl p-5 mb-4 space-y-3">
           {os.equipment && (

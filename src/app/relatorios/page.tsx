@@ -211,6 +211,11 @@ export default async function RelatoriosPage({
     if (clienteId) printParams.set("cliente_id", clienteId);
     if (detalhes) printParams.set("detalhes", "1");
     const printHref = `/relatorios/imprimir?${printParams.toString()}`;
+    const csvParams = new URLSearchParams({ aba: "vendas", ano });
+    if (mes) csvParams.set("mes", mes);
+    if (dia) csvParams.set("dia", dia);
+    if (clienteId) csvParams.set("cliente_id", clienteId);
+    const csvHref = `/relatorios/exportar?${csvParams.toString()}`;
 
     // Toggle href (preserves all current params, flips detalhes)
     const baseVendasParams = new URLSearchParams({ aba: "vendas", ano });
@@ -224,7 +229,7 @@ export default async function RelatoriosPage({
     return (
       <AppLayout>
         <div className="p-6 max-w-5xl">
-          <PageHeader aba={aba} printHref={printHref} />
+          <PageHeader aba={aba} printHref={printHref} csvHref={csvHref} />
 
           {/* Filtros */}
           <form method="GET" action="/relatorios" className="mb-6">
@@ -531,6 +536,11 @@ export default async function RelatoriosPage({
   if (clienteId) printParams.set("cliente_id", clienteId);
   if (detalhes) printParams.set("detalhes", "1");
   const printHref = `/relatorios/imprimir?${printParams.toString()}`;
+  const csvParams = new URLSearchParams({ aba: "os", ano });
+  if (mes) csvParams.set("mes", mes);
+  if (dia) csvParams.set("dia", dia);
+  if (clienteId) csvParams.set("cliente_id", clienteId);
+  const csvHref = `/relatorios/exportar?${csvParams.toString()}`;
 
   // Toggle href for OS
   const baseOSParams = new URLSearchParams({ aba: "os", ano });
@@ -544,7 +554,7 @@ export default async function RelatoriosPage({
   return (
     <AppLayout>
       <div className="p-6 max-w-5xl">
-        <PageHeader aba={aba} printHref={printHref} />
+        <PageHeader aba={aba} printHref={printHref} csvHref={csvHref} />
 
         {/* Filtros */}
         <form method="GET" action="/relatorios" className="mb-6">
@@ -742,11 +752,17 @@ export default async function RelatoriosPage({
 
 // ─── sub-components ───────────────────────────────────────────────────────────
 
-function PageHeader({ aba, printHref }: { aba: "vendas" | "os"; printHref: string }) {
+function PageHeader({ aba, printHref, csvHref }: { aba: "vendas" | "os"; printHref: string; csvHref: string }) {
   return (
     <div className="flex items-center justify-between mb-6">
       <h1 className="text-2xl font-bold text-white">Relatórios</h1>
       <div className="flex items-center gap-3">
+        <a
+          href={csvHref}
+          className="text-sm px-3 py-1.5 rounded-lg border border-brand-gray-mid text-gray-400 hover:border-green-400 hover:text-green-400 transition-colors"
+        >
+          ↓ CSV
+        </a>
         <a
           href={printHref}
           target="_blank"

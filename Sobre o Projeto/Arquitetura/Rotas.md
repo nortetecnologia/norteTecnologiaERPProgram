@@ -39,8 +39,9 @@ O middleware redireciona para `/login` qualquer acesso não autenticado.
 | `/pdv/[id]/recibo` | Impressão de recibo de venda |
 | `/configuracoes` | Configurações do ERP (dados da empresa, formas de pagamento) — somente admin |
 | `/configuracoes/usuarios` | Gestão de usuários com acesso ao ERP: listar, alterar role (admin/operador), conceder/revogar acesso — somente admin |
+| `/relatorios/exportar` | Route Handler GET — exporta CSV de vendas PDV ou OS com os mesmos filtros da tela de relatórios |
 | `/funcionarios` | Listagem e gestão de funcionários e cargos |
-| `/relatorios` | Relatórios de vendas e OS (básico — Fase 1) |
+| `/relatorios` | Relatórios de vendas e OS com exportação CSV |
 
 ---
 
@@ -58,6 +59,7 @@ O middleware redireciona para `/login` qualquer acesso não autenticado.
 | `createProduct` | `/produtos/actions.ts` | Criar produto (reutiliza lógica do site) |
 | `updateProduct` | `/produtos/actions.ts` | Editar produto |
 | `setUserRoleAction` | `/configuracoes/usuarios/actions.ts` | Conceder/revogar/alterar role ERP de um usuário Supabase (somente admin) |
+| `updateOSStatus` | `/os/actions.ts` | Mudar status da OS; ao cancelar, aceita `cancelledReason` e salva em `cancelled_reason` |
 | `adjustStock` | `/estoque/actions.ts` | Ajuste manual de estoque |
 | `createServiceOrder` | `/os/actions.ts` | Criar OS (inclui salvar `images[]`) |
 | `updateOSStatus` | `/os/actions.ts` | Mudar status da OS |

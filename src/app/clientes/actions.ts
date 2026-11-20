@@ -5,7 +5,7 @@ import { offlineInsert, offlineUpdate, offlineDelete } from "@/lib/offline-queue
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, requireAdmin } from "@/lib/auth";
 
 async function getAuth() {
   await requireAuth();
@@ -69,7 +69,7 @@ export async function updateCustomer(id: string, formData: FormData) {
 }
 
 export async function deleteCustomer(id: string) {
-  await requireAuth();
+  await requireAdmin();
 
   if (isOfflineMode()) {
     offlineDelete("erp_customers", id);

@@ -6,7 +6,7 @@ import { offlineInsert, offlineUpdate, offlineDelete } from "@/lib/offline-queue
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, requireAdmin } from "@/lib/auth";
 
 function slugify(text: string): string {
   return text
@@ -19,7 +19,7 @@ function slugify(text: string): string {
 
 
 export async function deleteProduto(id: string) {
-  await requireAuth();
+  await requireAdmin();
 
   if (isOfflineMode()) {
     offlineDelete("products", id);

@@ -4,6 +4,8 @@ import { useState, useActionState, useEffect, useRef } from "react";
 import { createSale } from "./actions";
 import { formatCurrency } from "@/lib/utils";
 
+const DRAFT_KEY = "pdv_cart_draft";
+
 interface Product { id: string; name: string; price: number; sku?: string; barcode?: string; stock?: number; product_images?: { url: string; is_primary: boolean }[] | null }
 interface Customer { id: string; name: string; phone?: string }
 interface CartItem { product_id: string; description: string; quantity: number; unit_price: number }
@@ -30,8 +32,56 @@ export default function PDVClient({
   const [discountType, setDiscountType] = useState<"R$" | "%">("R$");
   const [search, setSearch] = useState("");
   const [customerId, setCustomerId] = useState("");
+  const [draftLoaded, setDraftLoaded] = useState(false);
   // Tracks the raw string the user is typing in a price field (by product_id)
   const [priceTexts, setPriceTexts] = useState<Record<string, string>>({});
+
+  // Restaura rascunho do localStorage na montagem
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const draft = JSON.parse(raw);
+        if (Array.isArray(draft.cart) && draft.cart.length > 0) {
+          setCart(draft.cart);
+          setDraftLoaded(true);
+        }
+        if (draft.customerId) setCustomerId(draft.customerId);
+        if (typeof draft.discountInput === "number") setDiscountInput(draft.discountInput);
+        if (draft.discountType === "%" || draft.discountType === "R$") setDiscountType(draft.discountType);
+      }
+    } catch {}
+  }, []);
+
+  // Salva rascunho sempre que o carrinho muda
+  useEffect(() => {
+    try {
+      if (cart.length === 0 && !customerId && discountInput === 0) {
+        localStorage.removeItem(DRAFT_KEY);
+        setDraftLoaded(false);
+      } else {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ cart, customerId, discountInput, discountType }));
+      }
+    } catch {}
+  }, [cart, customerId, discountInput, discountType]);
+
+  // Limpa rascunho ao submeter (sucesso redireciona, erro preserva estado em memória)
+  useEffect(() => {
+    if (isPending) {
+      try { localStorage.removeItem(DRAFT_KEY); } catch {}
+    }
+  }, [isPending]);
+
+  function clearDraft() {
+    setCart([]);
+    setCustomerId("");
+    setDiscountInput(0);
+    setDiscountType("R$");
+    setPayments([{ method: defaultMethod, amount: 0 }]);
+    setPriceTexts({});
+    setDraftLoaded(false);
+    try { localStorage.removeItem(DRAFT_KEY); } catch {}
+  }
 
   const filteredProducts = products.filter(
     (p) =>
@@ -181,6 +231,14 @@ export default function PDVClient({
 
       {/* Right: Cart + checkout */}
       <form action={action} className="w-80 md:w-96 flex flex-col bg-brand-gray-dark overflow-hidden">
+        {draftLoaded && (
+          <div className="flex items-center justify-between px-4 py-2 bg-brand-yellow/10 border-b border-brand-yellow/30">
+            <span className="text-xs text-brand-yellow font-medium">Rascunho restaurado</span>
+            <button type="button" onClick={clearDraft} className="text-xs text-gray-400 hover:text-red-400 transition-colors">
+              × Limpar
+            </button>
+          </div>
+        )}
         <div className="overflow-y-auto flex-1 p-4 space-y-3">
           {/* Client (optional) */}
           <div>

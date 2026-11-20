@@ -2,7 +2,7 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, requireAdmin } from "@/lib/auth";
 
 // ── Cargos ───────────────────────────────────────────────────────────────────
 
@@ -43,7 +43,7 @@ export async function updateCargo(id: string, formData: FormData): Promise<{ err
 }
 
 export async function deleteCargo(id: string): Promise<{ error?: string }> {
-  await requireAuth();
+  await requireAdmin();
   const supabase = createAdminClient();
   const { error } = await supabase.from("erp_roles").delete().eq("id", id);
   if (error) return { error: error.message };
@@ -114,7 +114,7 @@ export async function updateFuncionario(id: string, formData: FormData): Promise
 }
 
 export async function deleteFuncionario(id: string): Promise<{ error?: string }> {
-  await requireAuth();
+  await requireAdmin();
   const supabase = createAdminClient();
   const { error } = await supabase.from("erp_employees").delete().eq("id", id);
   if (error) return { error: error.message };

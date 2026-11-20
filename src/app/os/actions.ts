@@ -6,7 +6,7 @@ import { offlineInsert, offlineUpdate, offlineDelete } from "@/lib/offline-queue
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, requireAdmin } from "@/lib/auth";
 import type { OSStatus } from "@/types";
 
 async function getAuth() {
@@ -159,9 +159,12 @@ export async function updateServiceOrder(id: string, _prevState: unknown, formDa
   redirect(`/os/${id}`);
 }
 
-export async function updateOSStatus(id: string, status: OSStatus) {
+export async function updateOSStatus(id: string, status: OSStatus, cancelledReason?: string) {
   await requireAuth();
-  const payload = { status, updated_at: new Date().toISOString() };
+  const payload: Record<string, unknown> = { status, updated_at: new Date().toISOString() };
+  if (status === "cancelled") {
+    payload.cancelled_reason = cancelledReason?.trim() || null;
+  }
 
   if (isOfflineMode()) {
     offlineUpdate("erp_service_orders", id, payload);
@@ -179,7 +182,7 @@ export async function updateOSStatus(id: string, status: OSStatus) {
 }
 
 export async function deleteServiceOrder(id: string) {
-  await requireAuth();
+  await requireAdmin();
 
   if (isOfflineMode()) {
     offlineDelete("erp_service_orders", id);

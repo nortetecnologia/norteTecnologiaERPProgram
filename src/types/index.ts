@@ -75,6 +75,7 @@ export interface ServiceOrder {
   images?: string[];
   issued_by?: string;
   assigned_to?: string;
+  cancelled_reason?: string | null;
   created_at: string;
   updated_at: string;
   erp_customers?: Customer;

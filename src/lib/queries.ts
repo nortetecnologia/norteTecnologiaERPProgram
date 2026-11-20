@@ -12,11 +12,13 @@ export const getCachedDashboard = (todayISO: string) => {
     const products = (d["products"] ?? []) as any[];
     const todaySales = sales.filter((s: any) => s.created_at >= todayISO);
     const openOS = os.filter((o: any) => ["awaiting", "in_progress"].includes(o.status));
+    const overdueOS = openOS.filter((o: any) => o.estimated_at && o.estimated_at < todayISO);
     const lowStock = products.filter((p: any) => p.is_active && p.product_type === "product" && p.stock < 5);
     const recentSales = [...sales].sort((a, b) => b.created_at?.localeCompare(a.created_at)).slice(0, 5);
     return Promise.resolve({
       salesRes: { data: todaySales, error: null, count: todaySales.length },
       osRes: { data: openOS, error: null, count: openOS.length },
+      overdueOSRes: { data: overdueOS, error: null, count: overdueOS.length },
       stockRes: { data: lowStock, error: null, count: lowStock.length },
       recentSalesRes: { data: recentSales, error: null },
     });
@@ -24,13 +26,14 @@ export const getCachedDashboard = (todayISO: string) => {
   return unstable_cache(
     async () => {
       const supabase = createAdminClient();
-      const [salesRes, osRes, stockRes, recentSalesRes] = await Promise.all([
+      const [salesRes, osRes, overdueOSRes, stockRes, recentSalesRes] = await Promise.all([
         supabase.from("erp_pdv_sales").select("total").gte("created_at", todayISO),
         supabase.from("erp_service_orders").select("id", { count: "exact" }).in("status", ["awaiting", "in_progress"]),
+        supabase.from("erp_service_orders").select("id", { count: "exact" }).in("status", ["awaiting", "in_progress"]).not("estimated_at", "is", null).lt("estimated_at", todayISO),
         supabase.from("products").select("id", { count: "exact" }).lt("stock", 5).eq("is_active", true).eq("product_type", "product"),
         supabase.from("erp_pdv_sales").select("id, sale_number, total, created_at").order("created_at", { ascending: false }).limit(5),
       ]);
-      return { salesRes, osRes, stockRes, recentSalesRes };
+      return { salesRes, osRes, overdueOSRes, stockRes, recentSalesRes };
     },
     ["dashboard", todayISO],
     { revalidate: TTL, tags: ["dashboard", "sales", "service-orders", "products"] }
