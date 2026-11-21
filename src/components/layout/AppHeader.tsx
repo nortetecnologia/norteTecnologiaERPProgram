@@ -22,9 +22,14 @@ export function AppHeader({ onMenuToggle }: AppHeaderProps) {
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </button>
-        <span className="text-[#4b5563] text-xs hidden sm:block">
-          Sistema de Gestão
-        </span>
+        <div className="hidden sm:flex items-center gap-2">
+          <span className="text-[#4b5563] text-xs">Sistema de Gestão</span>
+          {process.env.NEXT_PUBLIC_APP_VERSION && (
+            <span className="text-[10px] text-gray-600 bg-[#1a1a1a] border border-brand-gray-mid px-1.5 py-0.5 rounded font-mono">
+              v{process.env.NEXT_PUBLIC_APP_VERSION}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center gap-2">

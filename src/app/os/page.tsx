@@ -1,63 +1,47 @@
 import Link from "next/link";
 import AppLayout from "@/components/layout/AppLayout";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { formatDate, formatOSNumber } from "@/lib/utils";
-import { OS_STATUS_LABELS, OS_STATUS_COLORS, type ServiceOrder } from "@/types";
+import { OS_STATUS_LABELS, type ServiceOrder } from "@/types";
 import { requireAuth } from "@/lib/auth";
 import { getCachedServiceOrders, getCachedCustomers } from "@/lib/queries";
 import { shouldUseLocalData, readOfflineData } from "@/lib/offline";
+import OSListClient from "./OSListClient";
 
 export default async function OSPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; cliente?: string; de?: string; ate?: string }>;
+  searchParams: Promise<{ status?: string; cliente?: string; de?: string; ate?: string }>;
 }) {
   await requireAuth();
-  const { q, status, cliente, de, ate } = await searchParams;
+  const { status, cliente, de, ate } = await searchParams;
 
   const customersRaw = await getCachedCustomers();
   const customers = (customersRaw as any[]).map((c: any) => ({ id: c.id, name: c.name }));
 
   let orders: ServiceOrder[];
-  const hasAdvancedFilter = q || cliente || de || ate;
+  const hasAdvancedFilter = !!(cliente || de || ate);
   if (hasAdvancedFilter) {
     if (shouldUseLocalData()) {
       const d = readOfflineData();
-      const customers = (d["erp_customers"] ?? []) as any[];
+      const allCustomers = (d["erp_customers"] ?? []) as any[];
       let rows = (d["erp_service_orders"] ?? []) as any[];
       if (status) rows = rows.filter((o: any) => o.status === status);
-      if (q) {
-        const qLow = q.toLowerCase();
-        const qNum = parseInt(q);
-        rows = rows.filter((o: any) =>
-          o.title?.toLowerCase().includes(qLow) ||
-          o.equipment?.toLowerCase().includes(qLow) ||
-          o.serial_number?.toLowerCase().includes(qLow) ||
-          (!isNaN(qNum) && o.number === qNum)
-        );
-      }
       if (cliente) rows = rows.filter((o: any) => o.customer_id === cliente);
       if (de) rows = rows.filter((o: any) => o.created_at >= de + "T00:00:00");
       if (ate) rows = rows.filter((o: any) => o.created_at <= ate + "T23:59:59");
       orders = rows
         .sort((a: any, b: any) => b.created_at?.localeCompare(a.created_at))
-        .slice(0, 200)
-        .map((o: any) => ({ ...o, erp_customers: customers.find((c: any) => c.id === o.customer_id) ?? null })) as ServiceOrder[];
+        .slice(0, 500)
+        .map((o: any) => ({ ...o, erp_customers: allCustomers.find((c: any) => c.id === o.customer_id) ?? null })) as ServiceOrder[];
     } else {
       const supabase = createAdminClient();
       let query = supabase
         .from("erp_service_orders")
         .select("*, erp_customers(name, phone)")
         .order("created_at", { ascending: false })
-        .limit(200);
+        .limit(500);
 
       if (status) query = query.eq("status", status);
-      if (q) {
-        const qNum = parseInt(q);
-        const orParts = [`title.ilike.%${q}%`, `equipment.ilike.%${q}%`, `serial_number.ilike.%${q}%`];
-        if (!isNaN(qNum)) orParts.push(`number.eq.${qNum}`);
-        query = query.or(orParts.join(","));
-      }
       if (cliente) query = query.eq("customer_id", cliente);
       if (de) query = query.gte("created_at", de + "T00:00:00");
       if (ate) query = query.lte("created_at", ate + "T23:59:59");
@@ -77,7 +61,6 @@ export default async function OSPage({
   function statusHref(s?: string) {
     const params = new URLSearchParams();
     if (s) params.set("status", s);
-    if (q) params.set("q", q);
     if (cliente) params.set("cliente", cliente);
     if (de) params.set("de", de);
     if (ate) params.set("ate", ate);
@@ -98,14 +81,10 @@ export default async function OSPage({
           </Link>
         </div>
 
-        {/* Advanced filters */}
+        {/* Advanced filters (cliente, data) — text search is live in OSListClient below */}
         <form method="get" className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl p-4 mb-4">
           {status && <input type="hidden" name="status" value={status} />}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-            <div>
-              <label className="text-xs text-gray-500 block mb-1">Busca (título, equip., serial, nº OS)</label>
-              <input type="text" name="q" defaultValue={q ?? ""} placeholder="Ex: iPhone, 123, ABC456..." className={inputCls + " w-full"} />
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="text-xs text-gray-500 block mb-1">Cliente</label>
               <select name="cliente" defaultValue={cliente ?? ""} className={inputCls + " w-full"}>
@@ -153,37 +132,7 @@ export default async function OSPage({
           ))}
         </div>
 
-        {orders.length === 0 ? (
-          <div className="text-center py-16 text-gray-500">Nenhuma OS encontrada.</div>
-        ) : (
-          <div className="space-y-2">
-            {orders.map((os) => (
-              <Link
-                key={os.id}
-                href={`/os/${os.id}`}
-                className="flex items-center gap-4 bg-brand-gray-dark border border-brand-gray-mid rounded-xl px-5 py-4 hover:border-brand-yellow/50 transition-colors"
-              >
-                <div className="font-mono text-sm text-brand-yellow font-bold w-20 shrink-0">
-                  {formatOSNumber(os.number)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm text-white font-medium truncate">{os.title}</div>
-                  <div className="text-xs text-gray-500">
-                    {(os.erp_customers as any)?.name ?? "Cliente não encontrado"}
-                    {os.equipment && ` · ${os.equipment}`}
-                    {os.serial_number && <span className="text-gray-600"> · S/N: {os.serial_number}</span>}
-                  </div>
-                </div>
-                <div className={`text-xs px-2.5 py-1 rounded-full shrink-0 ${OS_STATUS_COLORS[os.status]}`}>
-                  {OS_STATUS_LABELS[os.status]}
-                </div>
-                <div className="text-xs text-gray-500 shrink-0 hidden md:block">
-                  {formatDate(os.created_at)}
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
+        <OSListClient orders={orders} />
       </div>
     </AppLayout>
   );

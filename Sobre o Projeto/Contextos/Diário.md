@@ -30,6 +30,19 @@
 
 ## 3. Implementações concluídas
 
+### 2026-11-21 — Feat: versão no header, busca live de OS, fix placeholder vendas (v0.5.10)
+
+- **Objetivo:** Exibir versão do programa no cabeçalho; separar busca de OS dos filtros e torná-la em tempo real; limpar placeholder do histórico de vendas.
+- **Implementação:**
+  1. **`next.config.ts`** — importa `package.json` com `resolveJsonModule: true`; injeta `NEXT_PUBLIC_APP_VERSION: pkg.version` no `env` do Next.js, disponível em Client Components na build.
+  2. **`src/components/layout/AppHeader.tsx`** — adiciona badge de versão ao lado de "Sistema de Gestão": `<span className="... font-mono">v{process.env.NEXT_PUBLIC_APP_VERSION}</span>` (renderizado apenas quando variável existe).
+  3. **`src/app/pdv/vendas/VendasTable.tsx`** — remove "(resultado imediato)" do placeholder, mantendo apenas "Buscar por nº, cliente ou produto...".
+  4. **`src/app/os/OSListClient.tsx`** *(novo)* — Client Component `"use client"` que recebe `orders: ServiceOrder[]` e provê busca ao vivo (useState + useMemo) por título, equipamento, serial e nº OS, sem necessidade de submit. Renderiza os cards de OS com mesma aparência anterior.
+  5. **`src/app/os/page.tsx`** — Remove `q` de `searchParams`, `hasAdvancedFilter`, filtros offline/online e `statusHref`. Remove campo de busca textual do `<form>`. Grid de filtros reduzido de 4 para 3 colunas (cliente, de, até). Substitui lista inline de cards por `<OSListClient orders={orders} />`.
+- **Padrão:** Busca textual live no Client Component + filtros de data/cliente via server (mesmo padrão do PDV vendas).
+
+---
+
 ### 2026-11-20 — Feat: total mensal OS no dashboard + Busca na Sidebar (v0.5.9)
 
 - **Objetivo:** Visibilidade do faturamento de OS do mês no dashboard e acesso rápido à busca pela sidebar.
