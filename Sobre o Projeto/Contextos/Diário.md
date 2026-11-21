@@ -10,7 +10,7 @@
 
 - **Estágio:** Sistema em produção. Todos os módulos da Fase 1 implementados e funcionando. Fase 1+ em andamento.
 - **Distribuição:** App desktop Windows (instalador `.exe` via GitHub Releases, auto-update com `electron-updater`)
-- **Última atividade:** 2026-11-21 — Fix: bug pagamento não atualizando + orcamentos no dashboard offline + estilo impressão padronizado (v0.5.18).
+- **Última atividade:** 2026-11-21 — Padronização de estilo de todas as telas + botões Voltar + gerenciamento de usuários (v0.5.19).
 - **Situação geral:** Sistema operacional. Migrations aplicadas no Supabase. Cloudinary integrado. Upload de imagens nas OS funcionando. Autenticação por `app_metadata.erp_role`. Banco de dados compartilhado com o site — colunas corretas: `is_active`, `stock`. Imagens em tabela separada `product_images(id, product_id, url, alt, is_primary, position)`.
 - **Próxima etapa:** Fase 2 — relatórios avançados por período, lucratividade, NF-e.
 
@@ -19,10 +19,25 @@
 ## 2. Última atualização
 
 - **Data:** 2026-11-21
-- **Versão:** v0.5.17
-- **Atividade:** Impressão de orçamentos (A4 + recibo 80mm) + correção de orçamentos aparecendo como vendas.
+- **Versão:** v0.5.19
+- **Atividade:** Padronização de estilo de todas as telas, botões "← Voltar" em subpáginas, correção de cores hardcoded, e gerenciamento de usuários expandido.
 - **Resultado:**
-  - **Fix crítico — orçamentos como vendas:** adicionado `.eq("type", "sale")` em 9 queries: `pdv/vendas/page.tsx`, `relatorios/page.tsx`, `relatorios/imprimir/page.tsx`, `relatorios/exportar/route.ts`, `clientes/[id]/page.tsx`, `lib/queries.ts` (4 queries do dashboard).
+  - **Padronização de estilo (apenas CSS/classes — zero mudança de lógica):**
+    - **`FuncionariosClient.tsx`** — `font-semibold` → `font-bold` no h1; substituídas todas as cores hardcoded (`#0a0a0a`, `#2a2a2a`, `#9ca3af`, `#6b7280`, `#4b5563`, `#ffd600`) pelos tokens de marca Tailwind (`brand-gray-dark`, `brand-gray-mid`, `brand-yellow`, `gray-400/500/600`).
+    - **`OSListClient.tsx`** — `rounded-xl` → `rounded-lg` no campo de busca.
+    - **`os/page.tsx`** e **`pdv/vendas/page.tsx`** — botões do filtro: `rounded` → `rounded-lg`, `font-medium` → `font-bold`, `text-brand-dark` → `text-brand-black`.
+    - **`pdv/orcamentos/[id]/page.tsx`** — botão Editar: `rounded-xl` → `rounded-lg`.
+  - **Botões "← Voltar" adicionados (funcionalidade de navegação):**
+    - **`clientes/[id]/page.tsx`** — botão "← Voltar" ao lado de "Editar".
+    - **`clientes/novo/page.tsx`** — botão "← Voltar" no cabeçalho.
+    - **`os/nova/page.tsx`** — botão "← Voltar" no cabeçalho.
+  - **`configuracoes/usuarios/page.tsx`** — removido `.filter((u) => u.hasErpRole)`: agora mostra TODOS os usuários do Supabase Auth (não só os que já têm `erp_role`), permitindo atribuir cargo a novos usuários. Badge "Sem acesso" já existia para usuários sem papel.
+- **SQL necessária:** Nenhuma.
+
+---
+
+### 2026-11-21 — Fix: impressão + dashboard (v0.5.17/18)
+- **Fix crítico — orçamentos como vendas:** adicionado `.eq("type", "sale")` em 9 queries: `pdv/vendas/page.tsx`, `relatorios/page.tsx`, `relatorios/imprimir/page.tsx`, `relatorios/exportar/route.ts`, `clientes/[id]/page.tsx`, `lib/queries.ts` (4 queries do dashboard).
   - **`components/pdv/PrintLayout.tsx`** *(novo)* — componente cliente compartilhado com layouts A4 e recibo térmico 80mm; fundo branco, auto-print com `setTimeout`, barra de ferramentas de impressão (imprimir/fechar).
   - **`pdv/imprimir/page.tsx`** + **`PrintTempContent.tsx`** *(novos)* — página de impressão sem salvar: lê dados do `localStorage["pdv_print_temp"]`, Suspense wrapper.
   - **`pdv/orcamentos/[id]/imprimir/page.tsx`** *(novo)* — servidor busca orçamento + `store_settings` no Supabase e renderiza `PrintLayout`.

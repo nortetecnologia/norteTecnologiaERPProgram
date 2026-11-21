@@ -65,7 +65,7 @@ export default async function OrcamentoDetailPage({ params }: { params: Promise<
             />
             <Link
               href={`/pdv/orcamentos/${id}/editar`}
-              className="flex items-center gap-2 px-4 py-2 border border-brand-gray-mid text-gray-300 text-sm rounded-xl hover:border-gray-400 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 border border-brand-gray-mid text-gray-300 text-sm rounded-lg hover:border-gray-400 transition-colors"
             >
               ✏️ Editar
             </Link>

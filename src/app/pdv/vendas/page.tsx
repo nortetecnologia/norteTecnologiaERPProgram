@@ -80,13 +80,13 @@ export default async function VendasPage({
           <div className="flex gap-2 mt-3">
             <button
               type="submit"
-              className="px-4 py-1.5 bg-brand-yellow text-brand-dark rounded text-sm font-medium hover:bg-brand-yellow/90 transition-colors"
+              className="px-4 py-1.5 bg-brand-yellow text-brand-black rounded-lg text-sm font-bold hover:bg-brand-yellow-dark transition-colors"
             >
               Filtrar
             </button>
             <a
               href="/pdv/vendas"
-              className="px-4 py-1.5 bg-brand-gray-mid text-gray-300 rounded text-sm hover:bg-white/10 transition-colors"
+              className="px-4 py-1.5 bg-brand-gray-mid text-gray-300 rounded-lg text-sm hover:bg-white/10 transition-colors"
             >
               Limpar
             </a>

@@ -48,8 +48,8 @@ type RoleModal =
 type Tab = "employees" | "roles";
 
 const inputCls =
-  "w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-white text-sm placeholder-[#4b5563] focus:outline-none focus:border-[#ffd600] focus:ring-1 focus:ring-[#ffd600] transition-colors";
-const labelCls = "block text-xs font-medium text-[#9ca3af] mb-1";
+  "w-full bg-brand-gray-dark border border-brand-gray-mid rounded-lg px-3 py-2 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-brand-yellow focus:ring-1 focus:ring-brand-yellow transition-colors";
+const labelCls = "block text-xs font-medium text-gray-400 mb-1";
 
 // ── Componente principal ─────────────────────────────────────────────────────
 
@@ -166,8 +166,8 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
     <div className="p-6 max-w-5xl">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-white text-2xl font-semibold">Funcionários e Cargos</h1>
-        <p className="text-[#6b7280] text-sm mt-0.5">
+        <h1 className="text-2xl font-bold text-white">Funcionários e Cargos</h1>
+        <p className="text-gray-500 text-sm mt-0.5">
           {initialEmployees.length} funcionário{initialEmployees.length !== 1 ? "s" : ""} · {initialRoles.length} cargo{initialRoles.length !== 1 ? "s" : ""}
         </p>
       </div>
@@ -182,7 +182,7 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
             className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
               activeTab === tab
                 ? "border-brand-yellow text-brand-yellow"
-                : "border-transparent text-[#6b7280] hover:text-white"
+                : "border-transparent text-gray-500 hover:text-white"
             }`}
           >
             {tab === "employees" ? "Funcionários" : "Cargos"}
@@ -195,7 +195,7 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
         <>
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative flex-1 max-w-sm">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4b5563]" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
               <input
@@ -203,7 +203,7 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
                 placeholder="Buscar funcionário..."
                 value={empSearch}
                 onChange={(e) => setEmpSearch(e.target.value)}
-                className="w-full bg-brand-gray-dark border border-brand-gray-mid rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-[#4b5563] focus:outline-none focus:border-brand-yellow transition-colors"
+                className="w-full bg-brand-gray-dark border border-brand-gray-mid rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand-yellow transition-colors"
               />
             </div>
             <button
@@ -225,11 +225,11 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
                 </svg>
               </div>
               {empSearch ? (
-                <p className="text-[#6b7280] text-sm">Nenhum resultado para &ldquo;{empSearch}&rdquo;</p>
+                <p className="text-gray-500 text-sm">Nenhum resultado para &ldquo;{empSearch}&rdquo;</p>
               ) : (
                 <>
                   <h2 className="text-white font-medium mb-1">Nenhum funcionário cadastrado</h2>
-                  <p className="text-[#6b7280] text-sm">
+                  <p className="text-gray-500 text-sm">
                     Clique em{" "}
                     <button type="button" onClick={openCreateEmp} className="text-brand-yellow hover:underline">
                       Novo Funcionário
@@ -245,7 +245,7 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
                 {filteredEmployees.map((emp) => (
                   <li key={emp.id} className="flex items-center gap-3 px-4 py-3 hover:bg-brand-gray-mid/40 transition-colors">
                     {/* Avatar */}
-                    <div className="w-9 h-9 rounded-full bg-brand-gray-mid flex items-center justify-center flex-shrink-0 text-sm font-semibold text-[#9ca3af] uppercase select-none">
+                    <div className="w-9 h-9 rounded-full bg-brand-gray-mid flex items-center justify-center flex-shrink-0 text-sm font-semibold text-gray-400 uppercase select-none">
                       {emp.name.charAt(0)}
                     </div>
 
@@ -259,7 +259,7 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
                           </span>
                         ))}
                       </div>
-                      {emp.phone && <div className="text-xs text-[#6b7280] mt-0.5">{emp.phone}</div>}
+                      {emp.phone && <div className="text-xs text-gray-500 mt-0.5">{emp.phone}</div>}
                     </div>
 
                     {/* Status + Ações */}
@@ -271,7 +271,7 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
                         className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
                           emp.is_active
                             ? "bg-green-900/30 text-green-400 border-green-800/40 hover:bg-green-900/50"
-                            : "bg-brand-gray-mid text-[#6b7280] border-brand-gray-light hover:bg-brand-gray-light"
+                            : "bg-brand-gray-mid text-gray-500 border-brand-gray-light hover:bg-brand-gray-light"
                         }`}
                       >
                         {emp.is_active ? "Ativo" : "Inativo"}
@@ -279,7 +279,7 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
                       <button
                         type="button"
                         onClick={() => openEditEmp(emp)}
-                        className="p-1.5 text-[#6b7280] hover:text-brand-yellow transition-colors"
+                        className="p-1.5 text-gray-500 hover:text-brand-yellow transition-colors"
                         aria-label={`Editar ${emp.name}`}
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -290,7 +290,7 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
                       <button
                         type="button"
                         onClick={() => setEmpModal({ kind: "delete", id: emp.id, name: emp.name })}
-                        className="p-1.5 text-[#6b7280] hover:text-red-400 transition-colors"
+                        className="p-1.5 text-gray-500 hover:text-red-400 transition-colors"
                         aria-label={`Excluir ${emp.name}`}
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -312,7 +312,7 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
         <>
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative flex-1 max-w-sm">
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[#4b5563]" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
               <input
@@ -320,7 +320,7 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
                 placeholder="Buscar cargo..."
                 value={roleSearch}
                 onChange={(e) => setRoleSearch(e.target.value)}
-                className="w-full bg-brand-gray-dark border border-brand-gray-mid rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-[#4b5563] focus:outline-none focus:border-brand-yellow transition-colors"
+                className="w-full bg-brand-gray-dark border border-brand-gray-mid rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-brand-yellow transition-colors"
               />
             </div>
             <button
@@ -342,11 +342,11 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
                 </svg>
               </div>
               {roleSearch ? (
-                <p className="text-[#6b7280] text-sm">Nenhum resultado para &ldquo;{roleSearch}&rdquo;</p>
+                <p className="text-gray-500 text-sm">Nenhum resultado para &ldquo;{roleSearch}&rdquo;</p>
               ) : (
                 <>
                   <h2 className="text-white font-medium mb-1">Nenhum cargo cadastrado</h2>
-                  <p className="text-[#6b7280] text-sm">
+                  <p className="text-gray-500 text-sm">
                     Clique em{" "}
                     <button type="button" onClick={openCreateRole} className="text-brand-yellow hover:underline">
                       Novo Cargo
@@ -366,12 +366,12 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-white text-sm font-medium">{role.name}</span>
-                          <span className="text-[10px] text-[#6b7280] bg-brand-gray-mid px-2 py-0.5 rounded-full">
+                          <span className="text-[10px] text-gray-500 bg-brand-gray-mid px-2 py-0.5 rounded-full">
                             {empCount} funcionário{empCount !== 1 ? "s" : ""}
                           </span>
                         </div>
                         {role.description && (
-                          <p className="text-xs text-[#6b7280] mt-0.5 truncate">{role.description}</p>
+                          <p className="text-xs text-gray-500 mt-0.5 truncate">{role.description}</p>
                         )}
                       </div>
 
@@ -379,14 +379,14 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
                         <span className={`text-xs px-2 py-0.5 rounded-full border ${
                           role.is_active
                             ? "bg-green-900/30 text-green-400 border-green-800/40"
-                            : "bg-brand-gray-mid text-[#6b7280] border-brand-gray-light"
+                            : "bg-brand-gray-mid text-gray-500 border-brand-gray-light"
                         }`}>
                           {role.is_active ? "Ativo" : "Inativo"}
                         </span>
                         <button
                           type="button"
                           onClick={() => openEditRole(role)}
-                          className="p-1.5 text-[#6b7280] hover:text-brand-yellow transition-colors"
+                          className="p-1.5 text-gray-500 hover:text-brand-yellow transition-colors"
                           aria-label={`Editar ${role.name}`}
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -399,7 +399,7 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
                           onClick={() => setRoleModal({ kind: "delete", id: role.id, name: role.name })}
                           disabled={empCount > 0}
                           title={empCount > 0 ? "Remova os funcionários antes de excluir" : "Excluir"}
-                          className="p-1.5 text-[#6b7280] hover:text-red-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                          className="p-1.5 text-gray-500 hover:text-red-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                           aria-label={`Excluir ${role.name}`}
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -426,7 +426,7 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
                 {empModal.kind === "create" ? "Novo Funcionário" : "Editar Funcionário"}
               </h2>
               <button type="button" onClick={() => setEmpModal({ kind: "none" })}
-                className="p-1 text-[#6b7280] hover:text-white transition-colors" aria-label="Fechar">
+                className="p-1 text-gray-500 hover:text-white transition-colors" aria-label="Fechar">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
@@ -469,7 +469,7 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
               <div>
                 <span className={labelCls}>Cargos</span>
                 {initialRoles.length === 0 ? (
-                  <p className="text-xs text-[#6b7280]">
+                  <p className="text-xs text-gray-500">
                     Nenhum cargo cadastrado.{" "}
                     <button type="button" onClick={() => { setEmpModal({ kind: "none" }); setActiveTab("roles"); openCreateRole(); }}
                       className="text-brand-yellow hover:underline">
@@ -488,7 +488,7 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
                           className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
                             selected
                               ? "border-brand-yellow bg-brand-yellow/10 text-brand-yellow"
-                              : "border-brand-gray-mid bg-brand-black text-[#9ca3af] hover:border-brand-gray-light"
+                              : "border-brand-gray-mid bg-brand-black text-gray-400 hover:border-brand-gray-light"
                           }`}
                         >
                           {selected && (
@@ -521,7 +521,7 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
                   <button type="button" role="switch" aria-checked={empIsActive}
                     onClick={() => setEmpIsActive((v) => !v)}
                     className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm transition-colors ${
-                      empIsActive ? "bg-green-900/30 text-green-400 border-green-800/40" : "bg-brand-gray-mid text-[#9ca3af] border-brand-gray-light"
+                      empIsActive ? "bg-green-900/30 text-green-400 border-green-800/40" : "bg-brand-gray-mid text-gray-400 border-brand-gray-light"
                     }`}>
                     <span className={`w-2 h-2 rounded-full ${empIsActive ? "bg-green-400" : "bg-[#4b5563]"}`} aria-hidden="true" />
                     {empIsActive ? "Ativo" : "Inativo"}
@@ -531,7 +531,7 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
 
               <div className="flex justify-end gap-3 pt-2 border-t border-brand-gray-mid">
                 <button type="button" onClick={() => setEmpModal({ kind: "none" })}
-                  className="px-4 py-2 text-sm text-[#9ca3af] hover:text-white border border-brand-gray-mid rounded-lg transition-colors">
+                  className="px-4 py-2 text-sm text-gray-400 hover:text-white border border-brand-gray-mid rounded-lg transition-colors">
                   Cancelar
                 </button>
                 <button type="submit" disabled={isPending}
@@ -549,17 +549,17 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className="w-full max-w-sm bg-brand-gray-dark border border-brand-gray-mid rounded-xl shadow-2xl p-6">
             <h2 className="text-white font-semibold mb-2">Excluir funcionário</h2>
-            <p className="text-[#9ca3af] text-sm mb-1">
+            <p className="text-gray-400 text-sm mb-1">
               Tem certeza que deseja excluir{" "}
               <span className="text-white font-medium">&ldquo;{empModal.name}&rdquo;</span>?
             </p>
-            <p className="text-[#6b7280] text-xs mb-5">Esta ação não pode ser desfeita.</p>
+            <p className="text-gray-500 text-xs mb-5">Esta ação não pode ser desfeita.</p>
             {empModal.error && (
               <div className="mb-4 rounded-lg bg-red-900/20 border border-red-800/40 px-4 py-3 text-sm text-red-400">{empModal.error}</div>
             )}
             <div className="flex justify-end gap-3">
               <button type="button" onClick={() => setEmpModal({ kind: "none" })}
-                className="px-4 py-2 text-sm text-[#9ca3af] hover:text-white border border-brand-gray-mid rounded-lg transition-colors">
+                className="px-4 py-2 text-sm text-gray-400 hover:text-white border border-brand-gray-mid rounded-lg transition-colors">
                 Cancelar
               </button>
               <button type="button" disabled={isPending}
@@ -588,7 +588,7 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
                 {roleModal.kind === "create" ? "Novo Cargo" : "Editar Cargo"}
               </h2>
               <button type="button" onClick={() => setRoleModal({ kind: "none" })}
-                className="p-1 text-[#6b7280] hover:text-white transition-colors" aria-label="Fechar">
+                className="p-1 text-gray-500 hover:text-white transition-colors" aria-label="Fechar">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
@@ -623,7 +623,7 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
                   <button type="button" role="switch" aria-checked={roleIsActive}
                     onClick={() => setRoleIsActive((v) => !v)}
                     className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm transition-colors ${
-                      roleIsActive ? "bg-green-900/30 text-green-400 border-green-800/40" : "bg-brand-gray-mid text-[#9ca3af] border-brand-gray-light"
+                      roleIsActive ? "bg-green-900/30 text-green-400 border-green-800/40" : "bg-brand-gray-mid text-gray-400 border-brand-gray-light"
                     }`}>
                     <span className={`w-2 h-2 rounded-full ${roleIsActive ? "bg-green-400" : "bg-[#4b5563]"}`} aria-hidden="true" />
                     {roleIsActive ? "Ativo" : "Inativo"}
@@ -633,7 +633,7 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
 
               <div className="flex justify-end gap-3 pt-2 border-t border-brand-gray-mid">
                 <button type="button" onClick={() => setRoleModal({ kind: "none" })}
-                  className="px-4 py-2 text-sm text-[#9ca3af] hover:text-white border border-brand-gray-mid rounded-lg transition-colors">
+                  className="px-4 py-2 text-sm text-gray-400 hover:text-white border border-brand-gray-mid rounded-lg transition-colors">
                   Cancelar
                 </button>
                 <button type="submit" disabled={isPending}
@@ -651,17 +651,17 @@ export function FuncionariosClient({ employees: initialEmployees, roles: initial
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className="w-full max-w-sm bg-brand-gray-dark border border-brand-gray-mid rounded-xl shadow-2xl p-6">
             <h2 className="text-white font-semibold mb-2">Excluir cargo</h2>
-            <p className="text-[#9ca3af] text-sm mb-1">
+            <p className="text-gray-400 text-sm mb-1">
               Tem certeza que deseja excluir{" "}
               <span className="text-white font-medium">&ldquo;{roleModal.name}&rdquo;</span>?
             </p>
-            <p className="text-[#6b7280] text-xs mb-5">Esta ação não pode ser desfeita.</p>
+            <p className="text-gray-500 text-xs mb-5">Esta ação não pode ser desfeita.</p>
             {roleModal.error && (
               <div className="mb-4 rounded-lg bg-red-900/20 border border-red-800/40 px-4 py-3 text-sm text-red-400">{roleModal.error}</div>
             )}
             <div className="flex justify-end gap-3">
               <button type="button" onClick={() => setRoleModal({ kind: "none" })}
-                className="px-4 py-2 text-sm text-[#9ca3af] hover:text-white border border-brand-gray-mid rounded-lg transition-colors">
+                className="px-4 py-2 text-sm text-gray-400 hover:text-white border border-brand-gray-mid rounded-lg transition-colors">
                 Cancelar
               </button>
               <button type="button" disabled={isPending}

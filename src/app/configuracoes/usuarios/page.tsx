@@ -31,7 +31,6 @@ export default async function UsuariosPage() {
       lastSignIn: u.last_sign_in_at ?? null,
       isSelf: u.id === callerId,
     }))
-    .filter((u) => u.hasErpRole)
     .sort((a, b) => {
       if (a.isSelf) return -1;
       if (b.isSelf) return 1;

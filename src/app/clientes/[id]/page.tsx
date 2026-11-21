@@ -63,12 +63,20 @@ export default async function ClienteDetailPage({
             <h1 className="text-2xl font-bold text-white">{customer.name}</h1>
             {customer.email && <p className="text-gray-400 text-sm mt-0.5">{customer.email}</p>}
           </div>
-          <Link
-            href={`/clientes/${id}/editar`}
-            className="text-sm px-4 py-2 border border-brand-gray-mid text-gray-300 rounded-lg hover:border-gray-400 transition-colors"
-          >
-            Editar
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              href="/clientes"
+              className="text-sm px-4 py-2 border border-brand-gray-mid text-gray-500 rounded-lg hover:border-gray-400 transition-colors"
+            >
+              ← Voltar
+            </Link>
+            <Link
+              href={`/clientes/${id}/editar`}
+              className="text-sm px-4 py-2 border border-brand-gray-mid text-gray-300 rounded-lg hover:border-gray-400 transition-colors"
+            >
+              Editar
+            </Link>
+          </div>
         </div>
 
         {/* Info + Stats */}

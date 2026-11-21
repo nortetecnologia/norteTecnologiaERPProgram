@@ -41,7 +41,7 @@ export default function OSListClient({ orders }: { orders: ServiceOrder[] }) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar por título, cliente, nº OS (NT-00001), equipamento, serial..."
-          className="w-full bg-brand-gray-dark border border-brand-gray-mid rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-yellow"
+          className="w-full bg-brand-gray-dark border border-brand-gray-mid rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-yellow"
           autoComplete="off"
         />
         {search.trim() && (
