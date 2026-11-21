@@ -182,15 +182,16 @@ export default function PDVClient({
 
   const prevTotal = useRef(0);
   useEffect(() => {
+    const prevValue = prevTotal.current;
+    prevTotal.current = total;
     setPayments((prev) => {
       if (prev.length !== 1) return prev;
       const p = prev[0];
-      if (p.amount === prevTotal.current || p.amount === 0) {
+      if (p.amount === prevValue || p.amount === 0) {
         return [{ ...p, amount: total }];
       }
       return prev;
     });
-    prevTotal.current = total;
   }, [total]);
 
   function fillPaymentWithTotal() {

@@ -21,7 +21,7 @@ function firstOfMonth(todayISO: string): string {
 export const getCachedDashboard = (todayISO: string) => {
   if (shouldUseLocalData()) {
     const d = readOfflineData();
-    const sales = (d["erp_pdv_sales"] ?? []) as any[];
+    const sales = ((d["erp_pdv_sales"] ?? []) as any[]).filter((s: any) => s.type === "sale");
     const os = (d["erp_service_orders"] ?? []) as any[];
     const products = (d["products"] ?? []) as any[];
     const todaySales = sales.filter((s: any) => s.created_at >= todayISO);

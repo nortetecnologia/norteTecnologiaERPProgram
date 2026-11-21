@@ -27,7 +27,7 @@ export default async function OrcamentoImprimirPage({
       .eq("id", id)
       .eq("type", "quote")
       .single(),
-    supabase.from("store_settings").select("store_name, phone_number, address, cnpj").limit(1).maybeSingle(),
+    supabase.from("store_settings").select("store_name, phone_number, address, city, state_abbr, cnpj").limit(1).maybeSingle(),
   ]);
 
   if (!quote) notFound();
@@ -50,7 +50,8 @@ export default async function OrcamentoImprimirPage({
     discount: q.discount ?? 0,
     total: q.total ?? 0,
     storeName: settings?.store_name ?? undefined,
-    storeAddress: settings?.address ?? undefined,
+    storeAddress: settings ? [settings.address, settings.city, settings.state_abbr].filter(Boolean).join(" — ") || undefined : undefined,
+    storePhone: settings?.phone_number ?? undefined,
     cnpj: settings?.cnpj ?? undefined,
   };
 

@@ -18,6 +18,7 @@ export interface PrintData {
   total: number;
   storeName?: string;
   storeAddress?: string;
+  storePhone?: string;
   cnpj?: string;
 }
 
@@ -25,13 +26,26 @@ function fmt(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+function Sep() {
+  return <div style={{ borderTop: "1.5px dashed #000", margin: "8px 0" }} />;
+}
+
+function Stars() {
+  return (
+    <div style={{ textAlign: "center", letterSpacing: "3px", fontSize: "10px", color: "#000", margin: "6px 0" }}>
+      * * * * * * * * * * * * * *
+    </div>
+  );
+}
+
 export function PrintLayout({ data, type }: { data: PrintData; type: "a4" | "thermal" }) {
-  const storeName = data.storeName || "Norte Tecnologia";
+  const storeName = (data.storeName ?? "NORTE TECNOLOGIA").toUpperCase();
+  const subtotal = data.items.reduce((s, i) => s + i.quantity * i.unit_price, 0);
 
   useEffect(() => {
-    document.documentElement.style.background = "white";
-    document.body.style.background = "white";
-    document.body.style.color = "#111";
+    document.documentElement.style.background = "#f0f0f0";
+    document.body.style.background = "#f0f0f0";
+    document.body.style.color = "#000";
     document.title = `${data.quoteNumber} — ${storeName}`;
     const t = setTimeout(() => window.print(), 700);
     return () => {
@@ -42,178 +56,172 @@ export function PrintLayout({ data, type }: { data: PrintData; type: "a4" | "the
     };
   }, [data.quoteNumber, storeName]);
 
-  const subtotal = data.items.reduce((s, i) => s + i.quantity * i.unit_price, 0);
+  const isA4 = type === "a4";
 
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: `
-        html, body, #__next { background: white !important; color: #111 !important; }
-        @page { size: ${type === "a4" ? "A4" : "80mm auto"}; margin: ${type === "a4" ? "15mm" : "3mm 5mm"}; }
+        html, body { background: #f0f0f0 !important; color: #000 !important; }
+        @page { size: ${isA4 ? "A4" : "80mm auto"}; margin: ${isA4 ? "10mm 15mm" : "4mm"}; }
+        @media print {
+          .no-print { display: none !important; }
+          html, body { background: #fff !important; }
+          .receipt-wrap { padding: 0 !important; min-height: auto !important; }
+          .receipt { box-shadow: none !important; padding: 0 !important; }
+        }
         * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        @media print { .no-print { display: none !important; } body { background: white !important; padding-top: 0 !important; } }
       `}} />
 
-      <div className="no-print" style={{ position: "fixed", top: 0, left: 0, right: 0, background: "#f3f4f6", borderBottom: "1px solid #d1d5db", display: "flex", alignItems: "center", gap: "8px", padding: "8px 16px", zIndex: 9999, fontFamily: "sans-serif" }}>
-        <button onClick={() => window.print()} style={{ background: "#111", color: "white", border: "none", padding: "6px 18px", borderRadius: "4px", cursor: "pointer", fontSize: "13px", fontWeight: 600 }}>
+      {/* Toolbar */}
+      <div className="no-print" style={{ position: "fixed", top: 0, left: 0, right: 0, background: "#e5e7eb", borderBottom: "1px solid #d1d5db", display: "flex", alignItems: "center", gap: "8px", padding: "8px 16px", zIndex: 9999, fontFamily: "sans-serif" }}>
+        <button onClick={() => window.print()} style={{ background: "#111", color: "white", border: "none", padding: "5px 16px", borderRadius: "4px", cursor: "pointer", fontSize: "12px", fontWeight: 600 }}>
           Imprimir
         </button>
-        <button onClick={() => window.close()} style={{ background: "#e5e7eb", color: "#374151", border: "none", padding: "6px 14px", borderRadius: "4px", cursor: "pointer", fontSize: "13px" }}>
+        <button onClick={() => window.close()} style={{ background: "#e5e7eb", color: "#374151", border: "1px solid #d1d5db", padding: "5px 12px", borderRadius: "4px", cursor: "pointer", fontSize: "12px" }}>
           Fechar
         </button>
-        <span style={{ fontSize: "11px", color: "#6b7280", marginLeft: "8px" }}>
-          {type === "a4" ? "Formato A4" : "Recibo Térmico (80mm)"}
+        <span style={{ fontSize: "11px", color: "#6b7280" }}>
+          {isA4 ? "Formato A4" : "Recibo 80mm"}
         </span>
       </div>
 
-      <div style={{ paddingTop: "50px", background: "white", minHeight: "100vh" }}>
-        {type === "a4"
-          ? <A4Content data={data} subtotal={subtotal} storeName={storeName} />
-          : <ThermalContent data={data} subtotal={subtotal} storeName={storeName} />
-        }
-      </div>
-    </>
-  );
-}
+      <div className="receipt-wrap" style={{ display: "flex", justifyContent: "center", padding: "64px 0 24px", minHeight: "100vh" }}>
+        <div
+          className="receipt"
+          style={{
+            background: "#fff",
+            width: isA4 ? "auto" : "320px",
+            maxWidth: isA4 ? "680px" : "320px",
+            padding: "20px 18px 24px",
+            fontFamily: "'Courier New', Courier, monospace",
+            fontSize: "12px",
+            fontWeight: 600,
+            color: "#000",
+            boxShadow: "0 2px 16px rgba(0,0,0,0.15)",
+          }}
+        >
+          {/* Header */}
+          <div style={{ textAlign: "center", marginBottom: "12px" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo.png"
+              alt="NT"
+              style={{ height: "52px", width: "auto", display: "block", margin: "0 auto 6px", filter: "grayscale(100%) contrast(10) brightness(0.15)" }}
+            />
+            <div style={{ fontWeight: "900", fontSize: "14px", letterSpacing: "2px" }}>{storeName}</div>
+            {data.storeAddress && (
+              <div style={{ fontSize: "10px", color: "#000", fontWeight: "600", marginTop: "2px" }}>{data.storeAddress}</div>
+            )}
+            {data.storePhone && (
+              <div style={{ fontSize: "10px", color: "#000", fontWeight: "600" }}>Tel: {data.storePhone}</div>
+            )}
+            {data.cnpj && (
+              <div style={{ fontSize: "10px", color: "#000", fontWeight: "600" }}>CNPJ: {data.cnpj}</div>
+            )}
+          </div>
 
-function A4Content({ data, subtotal, storeName }: { data: PrintData; subtotal: number; storeName: string }) {
-  return (
-    <div style={{ fontFamily: "Arial, Helvetica, sans-serif", color: "#111", padding: "24px 32px", maxWidth: "190mm", margin: "0 auto" }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "20px", paddingBottom: "14px", borderBottom: "2px solid #111" }}>
-        <div>
-          <div style={{ fontSize: "22px", fontWeight: 900, letterSpacing: "-0.5px" }}>{storeName}</div>
-          {data.storeAddress && <div style={{ fontSize: "11px", color: "#666", marginTop: "2px" }}>{data.storeAddress}</div>}
-          {data.cnpj && <div style={{ fontSize: "10px", color: "#888", marginTop: "1px" }}>CNPJ: {data.cnpj}</div>}
-        </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: "10px", color: "#888", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "2px" }}>Orçamento</div>
-          <div style={{ fontSize: "20px", fontWeight: 700, fontFamily: "monospace" }}>{data.quoteNumber}</div>
-          <div style={{ fontSize: "11px", color: "#666", marginTop: "2px" }}>{data.dateStr}</div>
-        </div>
-      </div>
+          <Stars />
 
-      {/* Customer */}
-      <div style={{ marginBottom: "18px", padding: "10px 14px", border: "1px solid #e5e7eb", borderRadius: "6px", background: "#fafafa" }}>
-        <div style={{ fontSize: "9px", color: "#999", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "3px" }}>Cliente</div>
-        <div style={{ fontSize: "14px", fontWeight: 600 }}>{data.customerName}</div>
-        {data.customerPhone && <div style={{ fontSize: "11px", color: "#666", marginTop: "2px" }}>{data.customerPhone}</div>}
-      </div>
+          <div style={{ textAlign: "center", fontWeight: "900", fontSize: "13px", letterSpacing: "1px", marginBottom: "4px" }}>
+            ORÇAMENTO
+          </div>
 
-      {/* Items table */}
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", marginBottom: "14px" }}>
-        <thead>
-          <tr style={{ background: "#111", color: "white" }}>
-            <th style={{ padding: "8px 10px", textAlign: "left", fontWeight: 600, fontSize: "11px" }}>Item</th>
-            <th style={{ padding: "8px 10px", textAlign: "center", fontWeight: 600, fontSize: "11px", width: "55px" }}>Qtd</th>
-            <th style={{ padding: "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "11px", width: "100px" }}>Unit.</th>
-            <th style={{ padding: "8px 10px", textAlign: "right", fontWeight: 600, fontSize: "11px", width: "100px" }}>Total</th>
-          </tr>
-        </thead>
-        <tbody>
+          <Sep />
+
+          {/* Number + date */}
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ fontWeight: "900" }}>{data.quoteNumber}</span>
+            <span>{data.dateStr}</span>
+          </div>
+
+          {/* Customer */}
+          <div style={{ marginTop: "4px" }}>
+            <span style={{ fontWeight: "700" }}>Cliente: </span>
+            <span style={{ fontWeight: "900" }}>{data.customerName}</span>
+          </div>
+          {data.customerPhone && (
+            <div style={{ marginTop: "2px", fontSize: "11px" }}>
+              <span style={{ fontWeight: "700" }}>Tel: </span>
+              <span>{data.customerPhone}</span>
+            </div>
+          )}
+
+          <Sep />
+
+          {/* Items header */}
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", fontWeight: "900", marginBottom: "4px", textTransform: "uppercase" }}>
+            <span>Descrição</span>
+            <span>Valor</span>
+          </div>
+
+          {/* Items */}
           {data.items.map((item, i) => (
-            <tr key={i} style={{ borderBottom: "1px solid #f0f0f0", background: i % 2 === 0 ? "white" : "#fafafa" }}>
-              <td style={{ padding: "8px 10px" }}>{item.description}</td>
-              <td style={{ padding: "8px 10px", textAlign: "center" }}>{item.quantity}</td>
-              <td style={{ padding: "8px 10px", textAlign: "right" }}>{fmt(item.unit_price)}</td>
-              <td style={{ padding: "8px 10px", textAlign: "right", fontWeight: 500 }}>{fmt(item.quantity * item.unit_price)}</td>
-            </tr>
+            <div key={i} style={{ marginBottom: "5px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ flex: 1, marginRight: "8px", wordBreak: "break-word", fontWeight: "700" }}>{item.description}</span>
+                <span style={{ flexShrink: 0, fontWeight: "900" }}>{fmt(item.quantity * item.unit_price)}</span>
+              </div>
+              {item.quantity > 1 && (
+                <div style={{ fontSize: "11px", paddingLeft: "8px" }}>
+                  {item.quantity} × {fmt(item.unit_price)}
+                </div>
+              )}
+            </div>
           ))}
-        </tbody>
-      </table>
 
-      {/* Totals */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "28px" }}>
-        <div style={{ width: "230px" }}>
+          <Sep />
+
+          {/* Discount */}
           {data.discount > 0 && (
             <>
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px", color: "#555" }}>
-                <span>Subtotal</span><span>{fmt(subtotal)}</span>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span>Subtotal</span>
+                <span>{fmt(subtotal)}</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px", color: "#c00" }}>
-                <span>Desconto</span><span>- {fmt(data.discount)}</span>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span>Desconto</span>
+                <span>- {fmt(data.discount)}</span>
               </div>
             </>
           )}
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "9px 0", fontSize: "16px", fontWeight: 700, borderTop: "2px solid #111", marginTop: "4px" }}>
-            <span>Total</span><span>{fmt(data.total)}</span>
-          </div>
-        </div>
-      </div>
 
-      {/* Footer */}
-      <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: "14px" }}>
-        <p style={{ fontSize: "10px", color: "#999", marginBottom: "30px" }}>
-          Orçamento válido por 7 dias a partir da data de emissão. Preços sujeitos a alteração sem aviso prévio.
-        </p>
-        <div style={{ display: "flex", gap: "80px" }}>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ borderTop: "1px solid #333", paddingTop: "4px", width: "160px", fontSize: "10px", color: "#555" }}>{storeName}</div>
+          {/* Total */}
+          <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "900", fontSize: "16px", marginTop: "4px", paddingTop: "5px", borderTop: "3px solid #000" }}>
+            <span>TOTAL ESTIMADO</span>
+            <span>{fmt(data.total)}</span>
           </div>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ borderTop: "1px solid #333", paddingTop: "4px", width: "160px", fontSize: "10px", color: "#555" }}>Cliente</div>
+
+          <Sep />
+
+          {/* Validity note */}
+          <div style={{ fontSize: "10px", fontWeight: "600", textAlign: "center", color: "#000", marginTop: "4px" }}>
+            Validade: 7 dias · Sujeito a alteração
           </div>
+
+          <Stars />
+
+          {/* Footer */}
+          <div style={{ textAlign: "center", marginTop: "8px" }}>
+            <div style={{ fontWeight: "900", fontSize: "14px", letterSpacing: "1px" }}>OBRIGADO!</div>
+            <div style={{ fontSize: "10px", fontWeight: "600", marginTop: "2px" }}>Volte sempre · {storeName}</div>
+          </div>
+
+          {/* A4-only: signature section */}
+          {isA4 && (
+            <>
+              <Sep />
+              <div style={{ display: "flex", justifyContent: "space-around", marginTop: "32px" }}>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ borderTop: "1px solid #000", width: "180px", paddingTop: "4px", fontSize: "10px" }}>{storeName}</div>
+                </div>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ borderTop: "1px solid #000", width: "180px", paddingTop: "4px", fontSize: "10px" }}>Cliente</div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
-    </div>
+    </>
   );
-}
-
-function ThermalContent({ data, subtotal, storeName }: { data: PrintData; subtotal: number; storeName: string }) {
-  return (
-    <div style={{ fontFamily: "'Courier New', Courier, monospace", fontSize: "11px", color: "#000", padding: "8px 10px", maxWidth: "72mm", margin: "0 auto" }}>
-      <div style={{ textAlign: "center", marginBottom: "6px" }}>
-        <div style={{ fontWeight: "bold", fontSize: "14px", textTransform: "uppercase" }}>{storeName}</div>
-        {data.storeAddress && <div style={{ fontSize: "10px" }}>{data.storeAddress}</div>}
-        {data.cnpj && <div style={{ fontSize: "10px" }}>CNPJ: {data.cnpj}</div>}
-      </div>
-
-      <Dashes />
-
-      <div>ORCAMENTO: {data.quoteNumber}</div>
-      <div>DATA: {data.dateStr}</div>
-      <div>CLIENTE: {data.customerName.length > 24 ? data.customerName.substring(0, 24) + ".." : data.customerName}</div>
-      {data.customerPhone && <div>TEL: {data.customerPhone}</div>}
-
-      <Dashes />
-
-      {data.items.map((item, i) => (
-        <div key={i} style={{ marginBottom: "4px" }}>
-          <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {item.description}
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ color: "#555" }}>{item.quantity} x {fmt(item.unit_price)}</span>
-            <span style={{ fontWeight: "bold" }}>{fmt(item.quantity * item.unit_price)}</span>
-          </div>
-        </div>
-      ))}
-
-      <Dashes />
-
-      {data.discount > 0 && (
-        <>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span>SUBTOTAL</span><span>{fmt(subtotal)}</span>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span>DESCONTO</span><span>-{fmt(data.discount)}</span>
-          </div>
-        </>
-      )}
-      <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold", fontSize: "13px", marginTop: "2px" }}>
-        <span>TOTAL</span><span>{fmt(data.total)}</span>
-      </div>
-
-      <Dashes />
-
-      <div style={{ textAlign: "center", fontSize: "10px", lineHeight: 1.7 }}>
-        <div>Valido por 7 dias.</div>
-        <div>Obrigado pela preferencia!</div>
-      </div>
-    </div>
-  );
-}
-
-function Dashes() {
-  return <div style={{ borderTop: "1px dashed #aaa", margin: "6px 0" }} />;
 }
