@@ -17,10 +17,10 @@ async function getAuth() {
 export async function createServiceOrder(_prevState: unknown, formData: FormData) {
   await requireAuth();
 
-  const customerId = formData.get("customer_id") as string;
+  const customerId = (formData.get("customer_id") as string) || null;
+  const customerName = (formData.get("customer_name") as string)?.trim() || null;
   const title = (formData.get("title") as string)?.trim();
   if (!title) return { error: "Título/problema é obrigatório." };
-  if (!customerId) return { error: "Selecione um cliente." };
 
   const imagesCount = parseInt(formData.get("images_count") as string) || 0;
   const images: string[] = [];
@@ -31,6 +31,7 @@ export async function createServiceOrder(_prevState: unknown, formData: FormData
 
   const osFields = {
     customer_id: customerId,
+    customer_name: customerName,
     title,
     description: (formData.get("description") as string)?.trim() || null,
     status: "awaiting" as OSStatus,

@@ -30,6 +30,36 @@
 
 ## 3. Implementações concluídas
 
+### 2026-11-21 — Feat: multi-tab PDV/OS, orçamentos e cliente livre (v0.5.12)
+
+- **Objetivo:** Abrir múltiplas abas de PDV e OS para atender situações concorrentes (orçamento + venda rápida). Adicionar modo orçamento (sem baixar estoque). Permitir digitar nome do cliente sem cadastro prévio.
+- **Implementação:**
+  1. **`src/lib/pdv-tabs.tsx`** *(novo)* — `PDVTabsProvider` / `usePDVTabs`: contexto React que persiste abas no `localStorage("pdv_tabs_v2")`. Cada aba: `{ id, label }`. Funções: `openNewTab`, `closeTab`, `setActiveTabId`.
+  2. **`src/lib/os-tabs.tsx`** *(novo)* — `OSTabsProvider` / `useOSTabs`: mesmo padrão para abas de OS.
+  3. **`src/components/layout/AppLayout.tsx`** — envolto com `PDVTabsProvider > OSTabsProvider`.
+  4. **`src/components/layout/Sidebar.tsx`** — sub-lista de abas clicáveis abaixo de "PDV" e "Ordens de Serviço"; cada aba tem botão × de fechar; botão "+" para nova aba.
+  5. **`src/app/pdv/PDVClient.tsx`** — aceita prop `tabId`; chave de rascunho vira `pdv_draft_${tabId}`; campo `customer_name` livre abaixo do select de cliente; botão "Criar Orçamento" com `formAction={quoteAction}`.
+  6. **`src/app/pdv/PDVTabsView.tsx`** *(novo)* — barra horizontal de abas + padrão show/hide (`hidden` Tailwind) para preservar estado React de cada `PDVClient`.
+  7. **`src/app/pdv/page.tsx`** — usa `PDVTabsView` em vez de `PDVClient` diretamente.
+  8. **`src/app/pdv/actions.ts`** — `createQuote`: salva `type='quote'`, sem baixar estoque, sem validar pagamento, retorna `{ success, saleId, saleNumber }`. `createSale` aceita e salva `customer_name`.
+  9. **`src/app/pdv/orcamentos/page.tsx`** *(novo)* — lista `erp_pdv_sales` onde `type='quote'`; busca por nº (NT-XXXXX), cliente e itens; link "Orçamentos" adicionado ao cabeçalho do PDV.
+  10. **`src/app/os/nova/OSForm.tsx`** — `customer_id` não obrigatório; campo `customer_name` livre adicionado.
+  11. **`src/app/os/actions.ts`** — `createServiceOrder`: remove validação de `customer_id`, aceita e salva `customer_name`.
+  12. **`src/app/os/nova/OSTabsView.tsx`** *(novo)* — barra de abas + OSForm por aba (show/hide).
+  13. **`src/app/os/nova/page.tsx`** — usa `OSTabsView`.
+- **SQL necessária (Supabase):**
+  ```sql
+  ALTER TABLE erp_pdv_sales
+    ADD COLUMN IF NOT EXISTS type TEXT NOT NULL DEFAULT 'sale' CHECK (type IN ('sale','quote')),
+    ADD COLUMN IF NOT EXISTS customer_name TEXT;
+
+  ALTER TABLE erp_service_orders
+    ADD COLUMN IF NOT EXISTS customer_name TEXT,
+    ALTER COLUMN customer_id DROP NOT NULL;
+  ```
+
+---
+
 ### 2026-11-21 — Feat: criação de usuários pelo ERP + hierarquia Admin/Operador (v0.5.11)
 
 - **Objetivo:** Permitir que admins criem/excluam usuários Supabase diretamente no ERP, sem acessar o painel Supabase. Implementar hierarquia de papéis com restrições de rota.

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import AppLayout from "@/components/layout/AppLayout";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import OSForm from "./OSForm";
+import OSTabsView from "./OSTabsView";
 
 export default async function NovaOSPage() {
   const anonClient = await createClient();
@@ -26,7 +26,7 @@ export default async function NovaOSPage() {
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-white">Nova Ordem de Serviço</h1>
         </div>
-        <OSForm customers={customers} products={products} employees={employees} />
+        <OSTabsView customers={customers} products={products} employees={employees} />
       </div>
     </AppLayout>
   );

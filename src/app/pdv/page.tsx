@@ -7,7 +7,7 @@ import {
   getCachedPaymentMethods,
   getCachedActiveEmployees,
 } from "@/lib/queries";
-import PDVClient from "./PDVClient";
+import PDVTabsView from "./PDVTabsView";
 
 const DEFAULT_PAYMENT_METHODS = [
   { name: "dinheiro", label: "Dinheiro" },
@@ -31,7 +31,7 @@ export default async function PDVPage() {
 
   return (
     <AppLayout>
-      <PDVClient products={products} customers={customers} paymentMethods={paymentMethods} employees={employees} />
+      <PDVTabsView products={products} customers={customers} paymentMethods={paymentMethods} employees={employees} />
     </AppLayout>
   );
 }

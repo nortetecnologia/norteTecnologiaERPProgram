@@ -12,6 +12,7 @@ interface Item { description: string; quantity: number; unit_price: number; prod
 
 export interface OSInitialData {
   customer_id?: string;
+  customer_name?: string | null;
   title?: string;
   description?: string | null;
   equipment?: string | null;
@@ -131,16 +132,28 @@ export default function OSForm({
 
       {/* Cliente + Título */}
       <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl p-5 space-y-4">
-        <div>
-          <label className="text-xs text-gray-400 block mb-1">Cliente *</label>
-          <select name="customer_id" required defaultValue={initialData?.customer_id ?? ""} className={inputCls}>
-            <option value="">Selecione o cliente...</option>
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name} {c.phone ? `· ${c.phone}` : ""}
-              </option>
-            ))}
-          </select>
+        <div className="space-y-2">
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Cliente cadastrado</label>
+            <select name="customer_id" defaultValue={initialData?.customer_id ?? ""} className={inputCls}>
+              <option value="">Selecione o cliente...</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} {c.phone ? `· ${c.phone}` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Ou digite o nome do cliente</label>
+            <input
+              type="text"
+              name="customer_name"
+              defaultValue={initialData?.customer_name ?? ""}
+              placeholder="Nome do cliente (sem cadastro)..."
+              className={inputCls}
+            />
+          </div>
         </div>
 
         <div>
