@@ -153,6 +153,7 @@ export default async function RelatoriosImprimirPage({
     let salesQuery = supabase
       .from("erp_pdv_sales")
       .select("id, sale_number, total, discount, created_at, customer_id, erp_customers(name)")
+      .eq("type", "sale")
       .gte("created_at", start)
       .lte("created_at", end)
       .order("created_at", { ascending: false });

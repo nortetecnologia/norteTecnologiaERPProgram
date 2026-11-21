@@ -37,6 +37,7 @@ export default function PDVClient({
   const [customerName, setCustomerName] = useState("");
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [priceTexts, setPriceTexts] = useState<Record<string, string>>({});
+  const [showPrintMenu, setShowPrintMenu] = useState(false);
 
   useEffect(() => {
     try {
@@ -161,6 +162,23 @@ export default function PDVClient({
   const total = Math.max(0, subtotal - discount);
   const paidTotal = payments.reduce((s, p) => s + (p.amount || 0), 0);
   const change = paidTotal - total;
+
+  function handlePrint(type: "a4" | "thermal") {
+    if (cart.length === 0) return;
+    const resolvedName = customerName || (customers.find((c) => c.id === customerId)?.name ?? "Consumidor final");
+    try {
+      localStorage.setItem("pdv_print_temp", JSON.stringify({
+        quoteNumber: "Orçamento",
+        date: new Date().toISOString(),
+        customerName: resolvedName,
+        items: cart,
+        discount,
+        total,
+      }));
+    } catch {}
+    window.open(`/pdv/imprimir?type=${type}`, "_blank");
+    setShowPrintMenu(false);
+  }
 
   const prevTotal = useRef(0);
   useEffect(() => {
@@ -518,6 +536,46 @@ export default function PDVClient({
           >
             {isQuotePending ? "Salvando orçamento..." : "Criar Orçamento"}
           </button>
+
+          <div style={{ position: "relative" }}>
+            <button
+              type="button"
+              disabled={cart.length === 0}
+              onClick={() => setShowPrintMenu((v) => !v)}
+              className="w-full bg-transparent border border-brand-gray-light text-gray-400 hover:border-blue-500/60 hover:text-blue-400 font-medium py-2.5 rounded-xl transition-colors disabled:opacity-40 text-sm flex items-center justify-center gap-2"
+            >
+              🖨️ Imprimir orçamento
+              <span style={{ fontSize: "10px", opacity: 0.6 }}>▼</span>
+            </button>
+            {showPrintMenu && (
+              <>
+                <div
+                  onClick={() => setShowPrintMenu(false)}
+                  style={{ position: "fixed", inset: 0, zIndex: 40 }}
+                />
+                <div style={{ position: "absolute", bottom: "calc(100% + 4px)", left: 0, right: 0, zIndex: 50, background: "#1f2937", border: "1px solid #374151", borderRadius: "10px", boxShadow: "0 -8px 24px rgba(0,0,0,0.4)", overflow: "hidden" }}>
+                  <button
+                    type="button"
+                    onClick={() => handlePrint("a4")}
+                    style={{ width: "100%", textAlign: "left", padding: "11px 14px", background: "transparent", border: "none", color: "#e5e7eb", fontSize: "13px", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "#374151")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  >
+                    📄 Impressão A4
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePrint("thermal")}
+                    style={{ width: "100%", textAlign: "left", padding: "11px 14px", background: "transparent", border: "none", borderTop: "1px solid #374151", color: "#e5e7eb", fontSize: "13px", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "#374151")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  >
+                    🧾 Recibo 80mm
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </form>
     </div>

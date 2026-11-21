@@ -117,6 +117,7 @@ export default async function RelatoriosPage({
     let salesQuery = supabase
       .from("erp_pdv_sales")
       .select("id, sale_number, total, discount, created_at, customer_id, erp_customers(name)")
+      .eq("type", "sale")
       .gte("created_at", start)
       .lte("created_at", end);
     if (clienteId) salesQuery = salesQuery.eq("customer_id", clienteId);

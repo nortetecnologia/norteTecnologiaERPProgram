@@ -4,7 +4,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAuth } from "@/lib/auth";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { FecharVendaButton, DeleteQuoteButton } from "./OrcamentoActions";
+import { FecharVendaButton, DeleteQuoteButton, PrintQuoteButton } from "./OrcamentoActions";
 
 export default async function OrcamentoDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -69,6 +69,7 @@ export default async function OrcamentoDetailPage({ params }: { params: Promise<
             >
               ✏️ Editar
             </Link>
+            <PrintQuoteButton quoteId={id} />
             <DeleteQuoteButton quoteId={id} />
           </div>
         </div>

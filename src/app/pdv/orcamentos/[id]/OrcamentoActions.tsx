@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteQuoteAction } from "./actions";
 
@@ -45,6 +46,56 @@ export function FecharVendaButton({ cartItems, customerId, customerName, discoun
     >
       Fechar Venda →
     </button>
+  );
+}
+
+export function PrintQuoteButton({ quoteId }: { quoteId: string }) {
+  const [open, setOpen] = useState(false);
+
+  function handlePrint(type: "a4" | "thermal") {
+    window.open(`/pdv/orcamentos/${quoteId}/imprimir?type=${type}`, "_blank");
+    setOpen(false);
+  }
+
+  return (
+    <div style={{ position: "relative" }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-2 px-4 py-2 border border-brand-gray-mid text-gray-300 text-sm rounded-xl hover:border-gray-400 transition-colors"
+      >
+        🖨️ Imprimir
+        <span style={{ fontSize: "10px", opacity: 0.7 }}>▼</span>
+      </button>
+      {open && (
+        <>
+          <div
+            onClick={() => setOpen(false)}
+            style={{ position: "fixed", inset: 0, zIndex: 40 }}
+          />
+          <div style={{ position: "absolute", top: "calc(100% + 4px)", right: 0, zIndex: 50, background: "#1f2937", border: "1px solid #374151", borderRadius: "10px", minWidth: "180px", boxShadow: "0 8px 24px rgba(0,0,0,0.4)", overflow: "hidden" }}>
+            <button
+              type="button"
+              onClick={() => handlePrint("a4")}
+              style={{ width: "100%", textAlign: "left", padding: "10px 14px", background: "transparent", border: "none", color: "#e5e7eb", fontSize: "13px", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "#374151")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              📄 Impressão A4
+            </button>
+            <button
+              type="button"
+              onClick={() => handlePrint("thermal")}
+              style={{ width: "100%", textAlign: "left", padding: "10px 14px", background: "transparent", border: "none", borderTop: "1px solid #374151", color: "#e5e7eb", fontSize: "13px", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "#374151")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              🧾 Recibo 80mm
+            </button>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 

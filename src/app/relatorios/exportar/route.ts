@@ -60,6 +60,7 @@ export async function GET(req: NextRequest) {
     let q = supabase
       .from("erp_pdv_sales")
       .select("sale_number, total, discount, created_at, erp_customers(name), erp_pdv_sale_payments(method, amount)")
+      .eq("type", "sale")
       .gte("created_at", start)
       .lte("created_at", end)
       .order("created_at", { ascending: false });

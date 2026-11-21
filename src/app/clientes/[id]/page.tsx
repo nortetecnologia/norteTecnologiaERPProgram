@@ -35,6 +35,7 @@ export default async function ClienteDetailPage({
       .from("erp_pdv_sales")
       .select("id, sale_number, total, created_at, erp_pdv_sale_payments(method)")
       .eq("customer_id", id)
+      .eq("type", "sale")
       .order("created_at", { ascending: false })
       .limit(50),
   ]);

@@ -61,17 +61,17 @@ export const getCachedDashboard = (todayISO: string) => {
       const days7 = buildLast7Days(todayISO);
       const startISO = days7[0] + "T00:00:00.000Z";
       const [salesRes, osRes, overdueOSRes, stockRes, recentSalesRes, pdvDailyRes, osDailyRes] = await Promise.all([
-        supabase.from("erp_pdv_sales").select("total").gte("created_at", todayISO),
+        supabase.from("erp_pdv_sales").select("total").eq("type", "sale").gte("created_at", todayISO),
         supabase.from("erp_service_orders").select("id", { count: "exact" }).in("status", ["awaiting", "in_progress"]),
         supabase.from("erp_service_orders").select("id", { count: "exact" }).in("status", ["awaiting", "in_progress"]).not("estimated_at", "is", null).lt("estimated_at", todayISO),
         supabase.from("products").select("id", { count: "exact" }).lt("stock", 5).eq("is_active", true).eq("product_type", "product"),
-        supabase.from("erp_pdv_sales").select("id, sale_number, total, created_at").order("created_at", { ascending: false }).limit(5),
-        supabase.from("erp_pdv_sales").select("created_at, total").gte("created_at", startISO),
+        supabase.from("erp_pdv_sales").select("id, sale_number, total, created_at").eq("type", "sale").order("created_at", { ascending: false }).limit(5),
+        supabase.from("erp_pdv_sales").select("created_at, total").eq("type", "sale").gte("created_at", startISO),
         supabase.from("erp_service_orders").select("created_at").gte("created_at", startISO),
       ]);
       const monthStart = firstOfMonth(todayISO);
       const [monthlyRes, monthlyOSRes] = await Promise.all([
-        supabase.from("erp_pdv_sales").select("total").gte("created_at", monthStart),
+        supabase.from("erp_pdv_sales").select("total").eq("type", "sale").gte("created_at", monthStart),
         supabase.from("erp_service_orders").select("labor_cost, discount, erp_service_order_items(quantity, unit_price)").gte("created_at", monthStart).neq("status", "cancelled"),
       ]);
       const dailyRevenueRes = days7.map((date) => ({

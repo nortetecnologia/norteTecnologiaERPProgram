@@ -10,7 +10,7 @@
 
 - **Estágio:** Sistema em produção. Todos os módulos da Fase 1 implementados e funcionando. Fase 1+ em andamento.
 - **Distribuição:** App desktop Windows (instalador `.exe` via GitHub Releases, auto-update com `electron-updater`)
-- **Última atividade:** 2026-11-21 — PDV layout fix + página de orçamento com editar/excluir/fechar venda (v0.5.16).
+- **Última atividade:** 2026-11-21 — Impressão de orçamentos (A4 + recibo 80mm) + correção de orçamentos aparecendo como vendas em relatórios (v0.5.17).
 - **Situação geral:** Sistema operacional. Migrations aplicadas no Supabase. Cloudinary integrado. Upload de imagens nas OS funcionando. Autenticação por `app_metadata.erp_role`. Banco de dados compartilhado com o site — colunas corretas: `is_active`, `stock`. Imagens em tabela separada `product_images(id, product_id, url, alt, is_primary, position)`.
 - **Próxima etapa:** Fase 2 — relatórios avançados por período, lucratividade, NF-e.
 
@@ -19,18 +19,35 @@
 ## 2. Última atualização
 
 - **Data:** 2026-11-21
-- **Versão:** v0.5.16
-- **Atividade:** PDV layout fix + página de orçamento completa.
+- **Versão:** v0.5.17
+- **Atividade:** Impressão de orçamentos (A4 + recibo 80mm) + correção de orçamentos aparecendo como vendas.
 - **Resultado:**
-  - **`PDVClient.tsx`** — `w-full` no div raiz (elimina espaço preto); painel de checkout alargado para `w-[380px] lg:w-[460px]`.
-  - **`pdv/orcamentos/[id]/page.tsx`** *(novo)* — página de detalhe do orçamento: itens, total, cliente, botões "Fechar Venda", "Editar", "Excluir".
-  - **`pdv/orcamentos/[id]/OrcamentoActions.tsx`** *(novo)* — `FecharVendaButton` (escreve no localStorage pdv-default e redireciona ao PDV), `DeleteQuoteButton` (confirm + Server Action).
-  - **`pdv/orcamentos/[id]/editar/`** *(novo)* — página + Client Component + Server Action para editar itens, cliente e desconto de um orçamento existente.
-  - **`pdv/orcamentos/page.tsx`** — link "Ver" atualizado para `/pdv/orcamentos/${id}` (antes apontava para rota inexistente).
+  - **Fix crítico — orçamentos como vendas:** adicionado `.eq("type", "sale")` em 9 queries: `pdv/vendas/page.tsx`, `relatorios/page.tsx`, `relatorios/imprimir/page.tsx`, `relatorios/exportar/route.ts`, `clientes/[id]/page.tsx`, `lib/queries.ts` (4 queries do dashboard).
+  - **`components/pdv/PrintLayout.tsx`** *(novo)* — componente cliente compartilhado com layouts A4 e recibo térmico 80mm; fundo branco, auto-print com `setTimeout`, barra de ferramentas de impressão (imprimir/fechar).
+  - **`pdv/imprimir/page.tsx`** + **`PrintTempContent.tsx`** *(novos)* — página de impressão sem salvar: lê dados do `localStorage["pdv_print_temp"]`, Suspense wrapper.
+  - **`pdv/orcamentos/[id]/imprimir/page.tsx`** *(novo)* — servidor busca orçamento + `store_settings` no Supabase e renderiza `PrintLayout`.
+  - **`PDVClient.tsx`** — botão "Imprimir orçamento" com dropdown A4/80mm abaixo de "Criar Orçamento"; `handlePrint` escreve no `localStorage["pdv_print_temp"]` e abre nova janela.
+  - **`pdv/orcamentos/[id]/OrcamentoActions.tsx`** — `PrintQuoteButton` com dropdown A4/80mm; abre `/pdv/orcamentos/[id]/imprimir?type=...` em nova janela.
+  - **`pdv/orcamentos/[id]/page.tsx`** — `PrintQuoteButton` adicionado ao header de ações.
 
 ---
 
 ## 3. Implementações concluídas
+
+### 2026-11-21 — Feat: impressão de orçamentos A4/80mm + fix orçamentos como vendas (v0.5.17)
+
+- **Objetivo:** Adicionar botões de impressão (A4 e recibo 80mm) no PDV e na página de orçamento; corrigir bug onde orçamentos apareciam misturados com vendas nos relatórios.
+- **Implementação:**
+  1. **Fix crítico:** 9 queries `erp_pdv_sales` sem `.eq("type", "sale")` — afetava relatórios, dashboard, histórico de clientes, exportação CSV. Corrigido em todos os arquivos.
+  2. **`components/pdv/PrintLayout.tsx`** *(novo)* — componente cliente com dois formatos: A4 (tabela de itens, campos de assinatura, logo store) e recibo 80mm (fonte monoespaçada, largura 72mm). Auto-print via `useEffect + setTimeout(700ms)`. Barra "no-print" com botões imprimir/fechar.
+  3. **`pdv/imprimir/`** *(novo)* — rota para impressão sem salvar: `PDVClient.tsx` serializa o carrinho no `localStorage["pdv_print_temp"]` e abre nova janela; `PrintTempContent.tsx` lê e renderiza `PrintLayout`.
+  4. **`pdv/orcamentos/[id]/imprimir/`** *(novo)* — rota para impressão do orçamento salvo: Server Component busca orçamento + `store_settings` via admin client, renderiza `PrintLayout` diretamente.
+  5. **`PDVClient.tsx`** — botão "Imprimir orçamento" (dropdown) abaixo de "Criar Orçamento".
+  6. **`OrcamentoActions.tsx`** — `PrintQuoteButton` (dropdown) exportado.
+  7. **`pdv/orcamentos/[id]/page.tsx`** — `PrintQuoteButton` adicionado ao header.
+- **SQL necessária:** Nenhuma (coluna `type` já existia; fix foi só nas queries).
+
+---
 
 ### 2026-11-21 — Fix: build TS + auditoria de funcionalidades (v0.5.14)
 

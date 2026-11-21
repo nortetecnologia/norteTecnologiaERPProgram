@@ -24,6 +24,7 @@ export default async function VendasPage({
   let query = supabase
     .from("erp_pdv_sales")
     .select("id, sale_number, total, discount, created_at, customer_id, erp_customers(name), erp_pdv_sale_items(description)")
+    .eq("type", "sale")
     .order("created_at", { ascending: false })
     .limit(500);
 
