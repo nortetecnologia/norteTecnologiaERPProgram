@@ -28,10 +28,54 @@ async function decrementStockSafe(
   }
 }
 
+export async function createQuote(prevState: unknown, formData: FormData) {
+  await requireAuth();
+
+  const customerId = (formData.get("customer_id") as string) || null;
+  const customerName = (formData.get("customer_name") as string)?.trim() || null;
+  const sellerId = (formData.get("seller_id") as string) || null;
+  const serviceProviderId = (formData.get("service_provider_id") as string) || null;
+  const discount = parseFloat(formData.get("discount") as string) || 0;
+  const itemsCount = parseInt(formData.get("items_count") as string) || 0;
+
+  if (itemsCount === 0) return { error: "Adicione ao menos um produto." };
+
+  const items: SaleItem[] = [];
+  for (let i = 0; i < itemsCount; i++) {
+    const productId = formData.get(`item_product_id_${i}`) as string;
+    const description = (formData.get(`item_description_${i}`) as string)?.trim();
+    const quantity = parseInt(formData.get(`item_quantity_${i}`) as string) || 1;
+    const unitPrice = parseFloat(formData.get(`item_unit_price_${i}`) as string) || 0;
+    if (!description) continue;
+    items.push({ product_id: productId, description, quantity, unit_price: unitPrice, subtotal: quantity * unitPrice });
+  }
+
+  const subtotal = items.reduce((s, i) => s + i.subtotal, 0);
+  const total = subtotal - discount;
+
+  const supabase = createAdminClient();
+
+  const { data: quote, error: quoteError } = await supabase
+    .from("erp_pdv_sales")
+    .insert({ customer_id: customerId, customer_name: customerName, subtotal, discount, total, type: "quote", seller_id: sellerId, service_provider_id: serviceProviderId })
+    .select("id, sale_number")
+    .single();
+
+  if (quoteError) return { error: quoteError.message };
+
+  if (items.length > 0) {
+    await supabase.from("erp_pdv_sale_items").insert(items.map((item) => ({ ...item, sale_id: quote.id })));
+  }
+
+  revalidateTag("sales");
+  return { success: true, saleId: quote.id, saleNumber: quote.sale_number as number };
+}
+
 export async function createSale(prevState: unknown, formData: FormData) {
   await requireAuth();
 
   const customerId = (formData.get("customer_id") as string) || null;
+  const customerName = (formData.get("customer_name") as string)?.trim() || null;
   const sellerId = (formData.get("seller_id") as string) || null;
   const serviceProviderId = (formData.get("service_provider_id") as string) || null;
   const discount = parseFloat(formData.get("discount") as string) || 0;
@@ -112,7 +156,7 @@ export async function createSale(prevState: unknown, formData: FormData) {
   // Insere a venda
   const { data: sale, error: saleError } = await supabase
     .from("erp_pdv_sales")
-    .insert({ customer_id: customerId, subtotal, discount, total, seller_id: sellerId, service_provider_id: serviceProviderId })
+    .insert({ customer_id: customerId, customer_name: customerName, subtotal, discount, total, type: "sale", seller_id: sellerId, service_provider_id: serviceProviderId })
     .select("id, sale_number")
     .single();
 

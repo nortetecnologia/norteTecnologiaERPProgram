@@ -2,8 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { logoutAction } from "@/app/login/actions";
+import { usePDVTabs } from "@/lib/pdv-tabs";
+import { useOSTabs } from "@/lib/os-tabs";
 
 const NAV_ITEMS = [
   {
@@ -24,25 +26,6 @@ const NAV_ITEMS = [
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-      </svg>
-    ),
-  },
-  {
-    href: "/pdv",
-    label: "PDV",
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
-        <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6" />
-      </svg>
-    ),
-  },
-  {
-    href: "/os",
-    label: "Ordens de Serviço",
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
       </svg>
     ),
   },
@@ -115,17 +98,36 @@ const NAV_ITEMS = [
   },
 ];
 
+const PDV_ICON = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
+    <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6" />
+  </svg>
+);
+
+const OS_ICON = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z" />
+  </svg>
+);
+
 interface SidebarProps {
   onClose?: () => void;
 }
 
 export default function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const pdvTabs = usePDVTabs();
+  const osTabs = useOSTabs();
 
   function isActive(href: string, exact?: boolean) {
     if (exact) return pathname === href;
     return pathname.startsWith(href);
   }
+
+  const pdvActive = isActive("/pdv");
+  const osActive = isActive("/os");
 
   return (
     <aside className="w-60 bg-[#111111] border-r border-brand-gray-mid flex flex-col h-full">
@@ -140,22 +142,107 @@ export default function Sidebar({ onClose }: SidebarProps) {
       {/* Nav */}
       <nav className="flex-1 py-4 overflow-y-auto">
         <ul className="space-y-0.5 px-3">
-          {NAV_ITEMS.map((item) => {
+
+          {/* Dashboard + Busca */}
+          {NAV_ITEMS.slice(0, 2).map((item) => {
             const active = isActive(item.href, item.exact);
             return (
               <li key={item.href}>
-                <Link
-                  href={item.href}
-                  onClick={onClose}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    active
-                      ? "bg-brand-yellow/10 text-brand-yellow"
-                      : "text-[#9ca3af] hover:bg-brand-gray-dark hover:text-white"
-                  }`}
-                >
-                  <span className={active ? "text-brand-yellow" : "text-[#6b7280]"}>
-                    {item.icon}
-                  </span>
+                <Link href={item.href} onClick={onClose}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${active ? "bg-brand-yellow/10 text-brand-yellow" : "text-[#9ca3af] hover:bg-brand-gray-dark hover:text-white"}`}>
+                  <span className={active ? "text-brand-yellow" : "text-[#6b7280]"}>{item.icon}</span>
+                  {item.label}
+                </Link>
+              </li>
+            );
+          })}
+
+          {/* PDV com sub-abas */}
+          <li>
+            <Link href="/pdv" onClick={onClose}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${pdvActive ? "bg-brand-yellow/10 text-brand-yellow" : "text-[#9ca3af] hover:bg-brand-gray-dark hover:text-white"}`}>
+              <span className={pdvActive ? "text-brand-yellow" : "text-[#6b7280]"}>{PDV_ICON}</span>
+              PDV
+            </Link>
+
+            {/* PDV tab sub-list */}
+            <div className="ml-4 mt-0.5 space-y-0.5 pl-5 border-l border-brand-gray-mid">
+              {pdvTabs.tabs.map((tab) => (
+                <div key={tab.id}
+                  className={`flex items-center gap-1 group rounded px-2 py-1 text-xs cursor-pointer transition-colors ${tab.id === pdvTabs.activeTabId && pdvActive ? "text-brand-yellow" : "text-gray-500 hover:text-gray-300"}`}>
+                  <button
+                    className="flex-1 text-left truncate"
+                    onClick={() => {
+                      pdvTabs.setActiveTabId(tab.id);
+                      router.push("/pdv");
+                      onClose?.();
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                  {pdvTabs.tabs.length > 1 && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); pdvTabs.closeTab(tab.id); }}
+                      className="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all shrink-0 text-[10px] px-0.5"
+                      title="Fechar aba"
+                    >✕</button>
+                  )}
+                </div>
+              ))}
+              <button
+                onClick={() => { pdvTabs.openNewTab(); router.push("/pdv"); onClose?.(); }}
+                className="flex items-center gap-1 text-xs text-gray-600 hover:text-brand-yellow transition-colors px-2 py-1"
+              >
+                <span className="text-base leading-none">+</span> Nova aba
+              </button>
+            </div>
+          </li>
+
+          {/* OS com sub-abas */}
+          <li>
+            <Link href="/os" onClick={onClose}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${osActive ? "bg-brand-yellow/10 text-brand-yellow" : "text-[#9ca3af] hover:bg-brand-gray-dark hover:text-white"}`}>
+              <span className={osActive ? "text-brand-yellow" : "text-[#6b7280]"}>{OS_ICON}</span>
+              Ordens de Serviço
+            </Link>
+
+            {/* OS tab sub-list */}
+            <div className="ml-4 mt-0.5 space-y-0.5 pl-5 border-l border-brand-gray-mid">
+              {osTabs.tabs.map((tab) => (
+                <div key={tab.id}
+                  className={`flex items-center gap-1 group rounded px-2 py-1 text-xs cursor-pointer transition-colors ${tab.id === osTabs.activeTabId && pathname === "/os/nova" ? "text-brand-yellow" : "text-gray-500 hover:text-gray-300"}`}>
+                  <button
+                    className="flex-1 text-left truncate"
+                    onClick={() => { osTabs.setActiveTabId(tab.id); router.push("/os/nova"); onClose?.(); }}
+                  >
+                    {tab.label}
+                  </button>
+                  {osTabs.tabs.length > 1 && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); osTabs.closeTab(tab.id); }}
+                      className="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all shrink-0 text-[10px] px-0.5"
+                      title="Fechar aba"
+                    >✕</button>
+                  )}
+                </div>
+              ))}
+              <button
+                onClick={() => { osTabs.openNewTab(); router.push("/os/nova"); onClose?.(); }}
+                className="flex items-center gap-1 text-xs text-gray-600 hover:text-brand-yellow transition-colors px-2 py-1"
+              >
+                <span className="text-base leading-none">+</span> Nova aba
+              </button>
+            </div>
+          </li>
+
+          {/* Remaining nav items */}
+          {NAV_ITEMS.slice(2).map((item) => {
+            const active = isActive(item.href, item.exact);
+            return (
+              <li key={item.href}>
+                <Link href={item.href} onClick={onClose}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${active ? "bg-brand-yellow/10 text-brand-yellow" : "text-[#9ca3af] hover:bg-brand-gray-dark hover:text-white"}`}>
+                  <span className={active ? "text-brand-yellow" : "text-[#6b7280]"}>{item.icon}</span>
                   {item.label}
                 </Link>
               </li>
@@ -167,10 +254,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
       {/* Logout */}
       <div className="p-4 border-t border-brand-gray-mid">
         <form action={logoutAction}>
-          <button
-            type="submit"
-            className="flex items-center gap-1.5 text-[#6b7280] hover:text-white text-sm transition-colors px-2 py-1.5 rounded hover:bg-brand-gray-dark w-full"
-          >
+          <button type="submit"
+            className="flex items-center gap-1.5 text-[#6b7280] hover:text-white text-sm transition-colors px-2 py-1.5 rounded hover:bg-brand-gray-dark w-full">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
               <polyline points="16 17 21 12 16 7" />

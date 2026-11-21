@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useActionState, useEffect, useRef } from "react";
-import { createSale } from "./actions";
+import { createSale, createQuote } from "./actions";
 import { formatCurrency } from "@/lib/utils";
-
-const DRAFT_KEY = "pdv_cart_draft";
 
 interface Product { id: string; name: string; price: number; sku?: string; barcode?: string; stock?: number; product_images?: { url: string; is_primary: boolean }[] | null }
 interface Customer { id: string; name: string; phone?: string }
@@ -18,28 +16,31 @@ export default function PDVClient({
   customers,
   paymentMethods,
   employees,
+  tabId = "default",
 }: {
   products: Product[];
   customers: Customer[];
   paymentMethods: PaymentMethodOption[];
   employees: Employee[];
+  tabId?: string;
 }) {
+  const draftKey = `pdv_draft_${tabId}`;
   const defaultMethod = paymentMethods[0]?.name ?? "pix";
   const [state, action, isPending] = useActionState(createSale, null);
+  const [quoteState, quoteAction, isQuotePending] = useActionState(createQuote, null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [payments, setPayments] = useState<Payment[]>([{ method: defaultMethod, amount: 0 }]);
   const [discountInput, setDiscountInput] = useState(0);
   const [discountType, setDiscountType] = useState<"R$" | "%">("R$");
   const [search, setSearch] = useState("");
   const [customerId, setCustomerId] = useState("");
+  const [customerName, setCustomerName] = useState("");
   const [draftLoaded, setDraftLoaded] = useState(false);
-  // Tracks the raw string the user is typing in a price field (by product_id)
   const [priceTexts, setPriceTexts] = useState<Record<string, string>>({});
 
-  // Restaura rascunho do localStorage na montagem
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(DRAFT_KEY);
+      const raw = localStorage.getItem(draftKey);
       if (raw) {
         const draft = JSON.parse(raw);
         if (Array.isArray(draft.cart) && draft.cart.length > 0) {
@@ -47,40 +48,48 @@ export default function PDVClient({
           setDraftLoaded(true);
         }
         if (draft.customerId) setCustomerId(draft.customerId);
+        if (draft.customerName) setCustomerName(draft.customerName);
         if (typeof draft.discountInput === "number") setDiscountInput(draft.discountInput);
         if (draft.discountType === "%" || draft.discountType === "R$") setDiscountType(draft.discountType);
       }
     } catch {}
-  }, []);
+  }, [draftKey]);
 
-  // Salva rascunho sempre que o carrinho muda
   useEffect(() => {
     try {
-      if (cart.length === 0 && !customerId && discountInput === 0) {
-        localStorage.removeItem(DRAFT_KEY);
+      if (cart.length === 0 && !customerId && !customerName && discountInput === 0) {
+        localStorage.removeItem(draftKey);
         setDraftLoaded(false);
       } else {
-        localStorage.setItem(DRAFT_KEY, JSON.stringify({ cart, customerId, discountInput, discountType }));
+        localStorage.setItem(draftKey, JSON.stringify({ cart, customerId, customerName, discountInput, discountType }));
       }
     } catch {}
-  }, [cart, customerId, discountInput, discountType]);
+  }, [cart, customerId, customerName, discountInput, discountType, draftKey]);
 
-  // Limpa rascunho ao submeter (sucesso redireciona, erro preserva estado em memória)
   useEffect(() => {
     if (isPending) {
-      try { localStorage.removeItem(DRAFT_KEY); } catch {}
+      try { localStorage.removeItem(draftKey); } catch {}
     }
-  }, [isPending]);
+  }, [isPending, draftKey]);
+
+  // Clear cart after successful quote
+  useEffect(() => {
+    if (quoteState && "success" in quoteState && quoteState.success) {
+      clearDraft();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quoteState]);
 
   function clearDraft() {
     setCart([]);
     setCustomerId("");
+    setCustomerName("");
     setDiscountInput(0);
     setDiscountType("R$");
     setPayments([{ method: defaultMethod, amount: 0 }]);
     setPriceTexts({});
     setDraftLoaded(false);
-    try { localStorage.removeItem(DRAFT_KEY); } catch {}
+    try { localStorage.removeItem(draftKey); } catch {}
   }
 
   const filteredProducts = products.filter(
@@ -117,7 +126,6 @@ export default function PDVClient({
         unit_price: product.price ?? 0,
       }];
     });
-    // Clear any stale price edit for this product
     setPriceTexts((prev) => { const n = { ...prev }; delete n[product.id]; return n; });
   }
 
@@ -154,8 +162,6 @@ export default function PDVClient({
   const paidTotal = payments.reduce((s, p) => s + (p.amount || 0), 0);
   const change = paidTotal - total;
 
-  // Auto-preenche o pagamento quando o total muda, desde que haja apenas
-  // uma forma e o usuário não tenha divergido manualmente do total anterior.
   const prevTotal = useRef(0);
   useEffect(() => {
     setPayments((prev) => {
@@ -175,18 +181,29 @@ export default function PDVClient({
     }
   }
 
+  const quoteSuccess = quoteState && "success" in quoteState && quoteState.success;
+  const quoteNumber = quoteState && "saleNumber" in quoteState ? quoteState.saleNumber : null;
+
   return (
-    <div className="flex h-[calc(100vh-0px)] overflow-hidden">
+    <div className="flex h-full overflow-hidden">
       {/* Left: Product search + catalog */}
       <div className="flex-1 flex flex-col p-4 overflow-hidden border-r border-brand-gray-mid">
         <div className="flex items-center justify-between mb-3">
           <h1 className="text-xl font-bold text-white">PDV — Ponto de Venda</h1>
-          <a
-            href="/pdv/vendas"
-            className="text-xs px-3 py-1.5 border border-brand-gray-mid text-gray-400 rounded-lg hover:border-gray-400 transition-colors"
-          >
-            Histórico de Vendas
-          </a>
+          <div className="flex items-center gap-2">
+            <a
+              href="/pdv/orcamentos"
+              className="text-xs px-3 py-1.5 border border-brand-gray-mid text-gray-400 rounded-lg hover:border-gray-400 transition-colors"
+            >
+              Orçamentos
+            </a>
+            <a
+              href="/pdv/vendas"
+              className="text-xs px-3 py-1.5 border border-brand-gray-mid text-gray-400 rounded-lg hover:border-gray-400 transition-colors"
+            >
+              Histórico de Vendas
+            </a>
+          </div>
         </div>
 
         <input
@@ -231,6 +248,9 @@ export default function PDVClient({
 
       {/* Right: Cart + checkout */}
       <form action={action} className="w-80 md:w-96 flex flex-col bg-brand-gray-dark overflow-hidden">
+        {/* Hidden fields */}
+        <input type="hidden" name="customer_name" value={customerName} />
+
         {draftLoaded && (
           <div className="flex items-center justify-between px-4 py-2 bg-brand-yellow/10 border-b border-brand-yellow/30">
             <span className="text-xs text-brand-yellow font-medium">Rascunho restaurado</span>
@@ -239,21 +259,42 @@ export default function PDVClient({
             </button>
           </div>
         )}
+
+        {quoteSuccess && (
+          <div className="flex items-center justify-between px-4 py-2 bg-green-900/30 border-b border-green-700/50">
+            <span className="text-xs text-green-400 font-medium">
+              Orçamento #{quoteNumber ?? ""} criado com sucesso!
+            </span>
+          </div>
+        )}
+
         <div className="overflow-y-auto flex-1 p-4 space-y-3">
-          {/* Client (optional) */}
-          <div>
-            <label className="text-xs text-gray-500 block mb-1">Cliente (opcional)</label>
-            <select
-              name="customer_id"
-              value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
-              className="w-full bg-brand-gray-mid border border-brand-gray-light rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-yellow"
-            >
-              <option value="">Consumidor final</option>
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+          {/* Client */}
+          <div className="space-y-2">
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Cliente cadastrado (opcional)</label>
+              <select
+                name="customer_id"
+                value={customerId}
+                onChange={(e) => setCustomerId(e.target.value)}
+                className="w-full bg-brand-gray-mid border border-brand-gray-light rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand-yellow"
+              >
+                <option value="">Consumidor final</option>
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Ou digite o nome do cliente</label>
+              <input
+                type="text"
+                placeholder="Nome do cliente (sem cadastro)..."
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                className="w-full bg-brand-gray-mid border border-brand-gray-light rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-yellow"
+              />
+            </div>
           </div>
 
           {/* Vendedor + Prestador de serviço */}
@@ -435,6 +476,9 @@ export default function PDVClient({
           {state?.error && (
             <div className="text-xs text-red-400 bg-red-900/20 rounded-lg px-3 py-2">{state.error}</div>
           )}
+          {quoteState && "error" in quoteState && quoteState.error && (
+            <div className="text-xs text-red-400 bg-red-900/20 rounded-lg px-3 py-2">{quoteState.error}</div>
+          )}
           <div className="flex justify-between text-sm text-gray-400">
             <span>Subtotal</span><span>{formatCurrency(subtotal)}</span>
           </div>
@@ -460,10 +504,19 @@ export default function PDVClient({
 
           <button
             type="submit"
-            disabled={isPending || cart.length === 0}
+            disabled={isPending || isQuotePending || cart.length === 0}
             className="w-full bg-brand-yellow hover:bg-brand-yellow-dark text-brand-black font-black py-3 rounded-xl transition-colors disabled:opacity-40 text-sm"
           >
             {isPending ? "Finalizando..." : "Finalizar Venda →"}
+          </button>
+
+          <button
+            type="submit"
+            formAction={quoteAction}
+            disabled={isPending || isQuotePending || cart.length === 0}
+            className="w-full bg-transparent border border-brand-gray-light text-gray-300 hover:border-brand-yellow/60 hover:text-brand-yellow font-medium py-2.5 rounded-xl transition-colors disabled:opacity-40 text-sm"
+          >
+            {isQuotePending ? "Salvando orçamento..." : "Criar Orçamento"}
           </button>
         </div>
       </form>
