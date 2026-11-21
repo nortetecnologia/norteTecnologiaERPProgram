@@ -19,9 +19,12 @@ export default function VendasTable({ sales }: { sales: Sale[] }) {
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) return sales;
+    // Strip leading "#" so "#1234" matches sale_number 1234
+    const strippedNum = term.replace(/^#/, "");
     return sales.filter(
       (s) =>
-        String(s.sale_number).includes(term) ||
+        String(s.sale_number).includes(strippedNum) ||
+        ("#" + String(s.sale_number).padStart(6, "0")).includes(term) ||
         (s.erp_customers?.name ?? "").toLowerCase().includes(term) ||
         (s.erp_pdv_sale_items ?? []).some((i) =>
           i.description?.toLowerCase().includes(term)

@@ -10,7 +10,7 @@
 
 - **Estágio:** Sistema em produção. Todos os módulos da Fase 1 implementados e funcionando. Fase 1+ em andamento.
 - **Distribuição:** App desktop Windows (instalador `.exe` via GitHub Releases, auto-update com `electron-updater`)
-- **Última atividade:** 2026-11-20 — Total mensal de OS no dashboard + link de Busca na Sidebar.
+- **Última atividade:** 2026-11-21 — Busca por número (NT-XXXXX/#XXXXX) em todos os campos + sync de rede movida para Configurações (admin only).
 - **Situação geral:** Sistema operacional. Migrations aplicadas no Supabase. Cloudinary integrado. Upload de imagens nas OS funcionando. Autenticação por `app_metadata.erp_role`. Banco de dados compartilhado com o site — colunas corretas: `is_active`, `stock`. Imagens em tabela separada `product_images(id, product_id, url, alt, is_primary, position)`.
 - **Próxima etapa:** Fase 2 — relatórios avançados por período, lucratividade, NF-e.
 
@@ -18,17 +18,33 @@
 
 ## 2. Última atualização
 
-- **Data:** 2026-11-20
-- **Versão:** v0.5.9
-- **Atividade:** Feat — total mensal de OS no dashboard + link de Busca na Sidebar.
+- **Data:** 2026-11-21
+- **Versão:** v0.5.13
+- **Atividade:** Feat — busca por número (NT-XXXXX/#XXXXX) em todos os campos + controles de sync movidos para Configurações (admin only).
 - **Resultado:**
-  - **`queries.ts`** — `getCachedDashboard` agora retorna `monthlyOSTotal`: query `erp_service_orders` com join `erp_service_order_items` para o mês corrente (status ≠ cancelled). Offline soma via filtro manual no `readOfflineData()`.
-  - **`dashboard/page.tsx`** — subtítulo do gráfico exibe "PDV R$ X · OS R$ X · total R$ X" quando há OS faturadas no mês.
-  - **`Sidebar.tsx`** — item "Busca" (ícone lupa) adicionado ao menu lateral entre Dashboard e PDV.
+  - **`OSListClient.tsx`** — busca ao vivo inclui NT-XXXXX, nº direto, nome livre e nome do cadastro.
+  - **`VendasTable.tsx`** — busca inclui #XXXXX e nome de cliente.
+  - **`busca/page.tsx`** — busca universal com NT-XXXXX offline e online; pré-fetch de IDs de clientes no Supabase.
+  - **`SyncPanel.tsx`** *(novo)* — painel de sync na página de Configurações (admin only).
+  - **`DesktopBar.tsx`** — simplificado para exibir apenas banner de modo offline.
 
 ---
 
 ## 3. Implementações concluídas
+
+### 2026-11-21 — Feat: busca por número + sync movida para configurações admin (v0.5.13)
+
+- **Objetivo:** Todos os campos de busca passam a aceitar nº de OS (NT-XXXXX), nº de pedido (#XXXXX) e nome de cliente. Controles de sincronização de rede removidos da barra superior (visível a todos) e movidos para Configurações (somente admin).
+- **Implementação:**
+  1. **`src/app/os/OSListClient.tsx`** — busca ao vivo agora inclui: `NT-XXXXX` (strip "nt-"/"#", parseInt, comparar com `os.number`), `formatOSNumber(os.number)` (match parcial), `os.customer_name` (cliente livre), `erp_customers.name` (cliente do cadastro). Placeholder atualizado.
+  2. **`src/app/pdv/vendas/VendasTable.tsx`** — busca ao vivo agora inclui: strip "#" do termo, `sale_number` como string, formato `#000000`, nome de cliente.
+  3. **`src/app/busca/page.tsx`** — busca universal: `qLow`/`strippedNum`/`qNumValid` movidos para escopo externo (acessível offline e online). Offline: compara `formatOSNumber(o.number)`, `o.customer_name`, nome via join de `allCustomers`. Online (Supabase): pré-busca IDs de clientes com `.ilike("name")`, adiciona `customer_id.in.(ids)` e `customer_name.ilike.%query%` ao `osOrParts`.
+  4. **`src/components/desktop/SyncPanel.tsx`** *(novo)* — painel de sincronização com status, toggle sync on/off, Baixar do Supabase, Enviar mudanças (com badge de pendentes), Ir offline / Voltar online. Estilizado como card de configurações; retorna `null` fora do Electron.
+  5. **`src/components/desktop/DesktopBar.tsx`** — simplificado: mantém apenas o banner amarelo de modo offline ativo (com botão "Voltar online"). Todos os controles de sync removidos.
+  6. **`src/app/configuracoes/page.tsx`** — importa e renderiza `<SyncPanel />` no final da página (já protegida por `requireAdmin()`).
+- **SQL necessária:** Nenhuma (sem mudanças de schema).
+
+---
 
 ### 2026-11-21 — Feat: multi-tab PDV/OS, orçamentos e cliente livre (v0.5.12)
 

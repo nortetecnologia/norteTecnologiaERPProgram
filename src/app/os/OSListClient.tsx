@@ -11,12 +11,24 @@ export default function OSListClient({ orders }: { orders: ServiceOrder[] }) {
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) return orders;
-    const num = parseInt(term);
+
+    // Parse numeric id from NT-XXXXX or plain digits or #XXXXX
+    let numSearch: number | null = null;
+    const stripped = term.replace(/^(nt-|#)/, "");
+    const parsed = parseInt(stripped);
+    if (!isNaN(parsed) && String(parsed) === stripped.replace(/^0+/, "") || stripped === "0") {
+      numSearch = parsed;
+    }
+    if (!isNaN(parsed)) numSearch = parsed;
+
     return orders.filter((os) =>
       (os.title ?? "").toLowerCase().includes(term) ||
       ((os as any).equipment ?? "").toLowerCase().includes(term) ||
       ((os as any).serial_number ?? "").toLowerCase().includes(term) ||
-      (!isNaN(num) && (os as any).number === num)
+      formatOSNumber((os as any).number).toLowerCase().includes(term) ||
+      ((os.erp_customers as any)?.name ?? "").toLowerCase().includes(term) ||
+      ((os as any).customer_name ?? "").toLowerCase().includes(term) ||
+      (numSearch !== null && (os as any).number === numSearch)
     );
   }, [orders, search]);
 
@@ -28,7 +40,7 @@ export default function OSListClient({ orders }: { orders: ServiceOrder[] }) {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por título, equipamento, serial ou nº OS..."
+          placeholder="Buscar por título, cliente, nº OS (NT-00001), equipamento, serial..."
           className="w-full bg-brand-gray-dark border border-brand-gray-mid rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-yellow"
           autoComplete="off"
         />

@@ -20,10 +20,14 @@ export default async function BuscaPage({
   let products: any[] = [];
 
   if (query.length >= 2) {
+    // Resolve numeric id from NT-XXXXX or #XXXXX or plain digits
+    const qLow = query.toLowerCase();
+    const strippedNum = query.replace(/^(NT-|nt-|#)/, "");
+    const qNum = parseInt(strippedNum);
+    const qNumValid = !isNaN(qNum);
+
     if (shouldUseLocalData()) {
       const d = readOfflineData();
-      const qLow = query.toLowerCase();
-      const qNum = parseInt(query);
       const allCustomers = (d["erp_customers"] ?? []) as any[];
       const allOrders = (d["erp_service_orders"] ?? []) as any[];
       const allProducts = (d["products"] ?? []) as any[];
@@ -37,12 +41,18 @@ export default async function BuscaPage({
         .slice(0, 5);
 
       orders = allOrders
-        .filter((o) =>
-          o.title?.toLowerCase().includes(qLow) ||
-          o.equipment?.toLowerCase().includes(qLow) ||
-          o.serial_number?.toLowerCase().includes(qLow) ||
-          (!isNaN(qNum) && o.number === qNum)
-        )
+        .filter((o) => {
+          const customerName = (allCustomers.find((c: any) => c.id === o.customer_id)?.name ?? "").toLowerCase();
+          return (
+            o.title?.toLowerCase().includes(qLow) ||
+            o.equipment?.toLowerCase().includes(qLow) ||
+            o.serial_number?.toLowerCase().includes(qLow) ||
+            customerName.includes(qLow) ||
+            (o.customer_name ?? "").toLowerCase().includes(qLow) ||
+            (qNumValid && o.number === qNum) ||
+            formatOSNumber(o.number).toLowerCase().includes(qLow)
+          );
+        })
         .sort((a, b) => b.created_at?.localeCompare(a.created_at))
         .slice(0, 5)
         .map((o) => ({
@@ -59,9 +69,17 @@ export default async function BuscaPage({
         .slice(0, 5);
     } else {
       const supabase = createAdminClient();
-      const qNum = parseInt(query);
-      const osOrParts = [`title.ilike.%${query}%`, `equipment.ilike.%${query}%`, `serial_number.ilike.%${query}%`];
-      if (!isNaN(qNum)) osOrParts.push(`number.eq.${qNum}`);
+      // Find matching customer IDs to also search OS by customer name
+      const { data: matchingCustomers } = await supabase
+        .from("erp_customers")
+        .select("id")
+        .ilike("name", `%${query}%`)
+        .limit(20);
+      const matchingCustomerIds = (matchingCustomers ?? []).map((c: any) => c.id);
+
+      const osOrParts = [`title.ilike.%${query}%`, `equipment.ilike.%${query}%`, `serial_number.ilike.%${query}%`, `customer_name.ilike.%${query}%`];
+      if (qNumValid) osOrParts.push(`number.eq.${qNum}`);
+      if (matchingCustomerIds.length > 0) osOrParts.push(`customer_id.in.(${matchingCustomerIds.join(",")})`);
 
       const [custRes, osRes, prodRes] = await Promise.all([
         supabase

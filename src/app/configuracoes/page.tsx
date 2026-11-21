@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth";
 import ConfigForm from "./ConfigForm";
 import { BackupConfig, DumpConfig } from "@/components/desktop/DesktopOnly";
+import SyncPanel from "@/components/desktop/SyncPanel";
 
 export default async function ConfiguracoesPage() {
   await requireAdmin();
@@ -29,6 +30,7 @@ export default async function ConfiguracoesPage() {
         <ConfigForm settings={settings} paymentMethods={paymentMethods ?? []} />
         <BackupConfig />
         <DumpConfig />
+        <SyncPanel />
       </div>
     </AppLayout>
   );
