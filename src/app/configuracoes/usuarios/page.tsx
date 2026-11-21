@@ -3,18 +3,19 @@ import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth";
 import { extractRole } from "@/lib/auth";
-import { setUserRoleAction } from "./actions";
+import { setUserRoleAction, createUserAction } from "./actions";
+import { DeleteUserButton } from "./DeleteUserButton";
 
 function RoleBadge({ role }: { role: string | null }) {
   if (role === "admin")
     return <span className="text-xs px-2 py-0.5 rounded-full bg-brand-yellow/20 text-brand-yellow font-medium">Admin</span>;
   if (role === "operador")
-    return <span className="text-xs px-2 py-0.5 rounded-full bg-gray-500/20 text-gray-400">Operador</span>;
+    return <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400">Operador</span>;
   return <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-400">Sem acesso</span>;
 }
 
 export default async function UsuariosPage() {
-  await requireAdmin();
+  const { userId: callerId } = await requireAdmin();
 
   const supabase = createAdminClient();
   const { data, error } = await supabase.auth.admin.listUsers({ perPage: 200 });
@@ -27,19 +28,16 @@ export default async function UsuariosPage() {
       role: extractRole(u.app_metadata as Record<string, unknown>),
       hasErpRole: !!u.app_metadata?.erp_role,
       lastSignIn: u.last_sign_in_at ?? null,
+      isSelf: u.id === callerId,
     }))
-    .filter((u) => u.hasErpRole || !u.email.includes("@"))
+    .filter((u) => u.hasErpRole)
     .sort((a, b) => {
+      if (a.isSelf) return -1;
+      if (b.isSelf) return 1;
       if (a.role === "admin" && b.role !== "admin") return -1;
       if (b.role === "admin" && a.role !== "admin") return 1;
       return a.email.localeCompare(b.email);
     });
-
-  // All users (for adding access to those without it)
-  const allUsers = (data?.users ?? [])
-    .filter((u) => !u.app_metadata?.erp_role)
-    .map((u) => ({ id: u.id, email: u.email ?? "" }))
-    .sort((a, b) => a.email.localeCompare(b.email));
 
   const inputCls =
     "bg-brand-gray-mid border border-brand-gray-light rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-brand-yellow";
@@ -62,6 +60,12 @@ export default async function UsuariosPage() {
           </div>
         )}
 
+        {/* Hierarquia de papéis */}
+        <div className="mb-6 p-4 bg-brand-gray-dark border border-brand-gray-mid rounded-xl text-xs text-gray-500 space-y-1">
+          <p><span className="text-brand-yellow font-semibold">Admin</span> — acesso total: configurações, relatórios, produtos, clientes, PDV, OS. Pode criar, alterar papel e excluir qualquer usuário (exceto a si mesmo).</p>
+          <p><span className="text-blue-400 font-semibold">Operador</span> — acesso restrito: PDV (vendas), adicionar clientes, criar OS. Sem acesso a configurações.</p>
+        </div>
+
         {/* Current ERP users */}
         <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl mb-6">
           <div className="px-5 py-3 border-b border-brand-gray-mid text-sm font-semibold text-gray-300">
@@ -76,7 +80,10 @@ export default async function UsuariosPage() {
                 <div key={u.id} className="px-5 py-4 flex items-center gap-4 flex-wrap">
                   <div className="flex-1 min-w-0">
                     {u.name && <div className="text-sm font-medium text-white truncate">{u.name}</div>}
-                    <div className="text-xs text-gray-400 truncate">{u.email}</div>
+                    <div className="text-xs text-gray-400 truncate">
+                      {u.email}
+                      {u.isSelf && <span className="ml-2 text-gray-600">(você)</span>}
+                    </div>
                     {u.lastSignIn && (
                       <div className="text-xs text-gray-600 mt-0.5">
                         Último acesso: {new Date(u.lastSignIn).toLocaleString("pt-BR")}
@@ -86,62 +93,86 @@ export default async function UsuariosPage() {
 
                   <RoleBadge role={u.role} />
 
-                  <form action={setUserRoleAction} className="flex items-center gap-2">
-                    <input type="hidden" name="user_id" value={u.id} />
-                    <select name="role" defaultValue={u.role ?? "operador"} className={inputCls}>
-                      <option value="admin">Admin</option>
-                      <option value="operador">Operador</option>
-                      <option value="remove">Remover acesso</option>
-                    </select>
-                    <button
-                      type="submit"
-                      className="px-3 py-1.5 bg-brand-gray-mid border border-brand-gray-light text-xs text-gray-300 rounded-lg hover:border-brand-yellow hover:text-white transition-colors"
-                    >
-                      Salvar
-                    </button>
-                  </form>
+                  {u.isSelf ? (
+                    <span className="text-xs text-gray-600 italic">conta atual</span>
+                  ) : (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Change role */}
+                      <form action={setUserRoleAction} className="flex items-center gap-2">
+                        <input type="hidden" name="user_id" value={u.id} />
+                        <select name="role" defaultValue={u.role ?? "operador"} className={inputCls}>
+                          <option value="admin">Admin</option>
+                          <option value="operador">Operador</option>
+                        </select>
+                        <button
+                          type="submit"
+                          className="px-3 py-1.5 bg-brand-gray-mid border border-brand-gray-light text-xs text-gray-300 rounded-lg hover:border-brand-yellow hover:text-white transition-colors"
+                        >
+                          Salvar
+                        </button>
+                      </form>
+
+                      {/* Delete */}
+                      <DeleteUserButton userId={u.id} email={u.email} />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        {/* Grant access to other users */}
-        {allUsers.length > 0 && (
-          <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl">
-            <div className="px-5 py-3 border-b border-brand-gray-mid text-sm font-semibold text-gray-300">
-              Conceder acesso a outro usuário
-            </div>
-            <div className="p-5">
-              <form action={setUserRoleAction} className="flex flex-wrap gap-3 items-end">
-                <div>
-                  <label className="text-xs text-gray-500 block mb-1">Usuário (Supabase Auth)</label>
-                  <select name="user_id" className={`${inputCls} max-w-[280px]`}>
-                    {allUsers.map((u) => (
-                      <option key={u.id} value={u.id}>{u.email}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 block mb-1">Papel</label>
-                  <select name="role" defaultValue="operador" className={inputCls}>
-                    <option value="admin">Admin</option>
-                    <option value="operador">Operador</option>
-                  </select>
-                </div>
+        {/* Create new user */}
+        <div className="bg-brand-gray-dark border border-brand-gray-mid rounded-xl">
+          <div className="px-5 py-3 border-b border-brand-gray-mid text-sm font-semibold text-gray-300">
+            Criar novo usuário
+          </div>
+          <div className="p-5">
+            <form action={createUserAction} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">E-mail</label>
+                <input
+                  type="email"
+                  name="email"
+                  required
+                  placeholder="usuario@empresa.com"
+                  className={inputCls + " w-full"}
+                  autoComplete="off"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">Senha</label>
+                <input
+                  type="password"
+                  name="password"
+                  required
+                  minLength={6}
+                  placeholder="Mínimo 6 caracteres"
+                  className={inputCls + " w-full"}
+                  autoComplete="new-password"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 block mb-1">Papel</label>
+                <select name="role" defaultValue="operador" className={inputCls + " w-full"}>
+                  <option value="admin">Admin</option>
+                  <option value="operador">Operador</option>
+                </select>
+              </div>
+              <div className="flex items-end">
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-brand-yellow text-brand-black text-sm font-semibold rounded-lg hover:bg-yellow-400 transition-colors"
+                  className="w-full px-4 py-2 bg-brand-yellow text-brand-black text-sm font-semibold rounded-lg hover:bg-yellow-400 transition-colors"
                 >
-                  Conceder acesso
+                  Criar usuário
                 </button>
-              </form>
-              <p className="text-xs text-gray-600 mt-3">
-                Apenas usuários já criados no Supabase Auth aparecem aqui. Para criar um novo usuário, acesse o painel do Supabase.
-              </p>
-            </div>
+              </div>
+            </form>
+            <p className="text-xs text-gray-600 mt-3">
+              O usuário é criado diretamente no Supabase Auth e já pode fazer login imediatamente.
+            </p>
           </div>
-        )}
+        </div>
       </div>
     </AppLayout>
   );

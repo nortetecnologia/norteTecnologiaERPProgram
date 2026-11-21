@@ -30,6 +30,19 @@
 
 ## 3. Implementações concluídas
 
+### 2026-11-21 — Feat: criação de usuários pelo ERP + hierarquia Admin/Operador (v0.5.11)
+
+- **Objetivo:** Permitir que admins criem/excluam usuários Supabase diretamente no ERP, sem acessar o painel Supabase. Implementar hierarquia de papéis com restrições de rota.
+- **Implementação:**
+  1. **`configuracoes/usuarios/actions.ts`** — `createUserAction`: cria usuário via `supabase.auth.admin.createUser({ email, password, email_confirm: true, app_metadata: { erp_role } })`. `deleteUserAction`: exclui via `supabase.auth.admin.deleteUser(id)` com self-protection. `setUserRoleAction` atualizado com self-protection (admin não pode alterar próprio papel).
+  2. **`configuracoes/usuarios/DeleteUserButton.tsx`** *(novo)* — Client Component com `confirm()` antes de chamar `deleteUserAction`.
+  3. **`configuracoes/usuarios/page.tsx`** — formulário de criação de usuário (email, senha, papel), botão de excluir por usuário, badge "conta atual" para próprio admin, card de hierarquia explicando Admin vs Operador.
+  4. **`middleware.ts`** — operadores são redirecionados para `/dashboard?error=acesso_restrito` ao tentar acessar `/configuracoes`, `/relatorios` ou `/busca`.
+- **Hierarquia:** Admin = acesso total + gerenciar usuários. Operador = apenas PDV, adicionar clientes, criar OS.
+- **Segurança:** Service Role Key já estava disponível via `createAdminClient()`; operações de criação/exclusão ficam exclusivamente em Server Actions com `requireAdmin()`.
+
+---
+
 ### 2026-11-21 — Feat: versão no header, busca live de OS, fix placeholder vendas (v0.5.10)
 
 - **Objetivo:** Exibir versão do programa no cabeçalho; separar busca de OS dos filtros e torná-la em tempo real; limpar placeholder do histórico de vendas.

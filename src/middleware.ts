@@ -86,6 +86,15 @@ export async function middleware(request: NextRequest) {
       url.pathname = "/dashboard";
       return NextResponse.redirect(url);
     }
+
+    // Operators are restricted to: PDV, Clientes (add), OS
+    const OPERATOR_BLOCKED = ["/configuracoes", "/relatorios", "/busca"];
+    if (role === "operador" && OPERATOR_BLOCKED.some((p) => pathname.startsWith(p))) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard";
+      url.searchParams.set("error", "acesso_restrito");
+      return NextResponse.redirect(url);
+    }
   } catch {
     if (!isLoginPage && !isPublicAuthPage) {
       const url = request.nextUrl.clone();
