@@ -67,7 +67,7 @@ export default function OSListClient({ orders }: { orders: ServiceOrder[] }) {
               <div className="flex-1 min-w-0">
                 <div className="text-sm text-white font-medium truncate">{os.title}</div>
                 <div className="text-xs text-gray-500">
-                  {(os.erp_customers as any)?.name ?? "Cliente não encontrado"}
+                  {(os.erp_customers as any)?.name ?? (os as any).customer_name ?? "Cliente não encontrado"}
                   {(os as any).equipment && ` · ${(os as any).equipment}`}
                   {(os as any).serial_number && (
                     <span className="text-gray-600"> · S/N: {(os as any).serial_number}</span>

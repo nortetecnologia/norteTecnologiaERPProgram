@@ -3,8 +3,9 @@ import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth";
 import { extractRole } from "@/lib/auth";
-import { setUserRoleAction, createUserAction } from "./actions";
+import { setUserRoleAction } from "./actions";
 import { DeleteUserButton } from "./DeleteUserButton";
+import { CreateUserForm } from "./CreateUserForm";
 
 function RoleBadge({ role }: { role: string | null }) {
   if (role === "admin")
@@ -128,46 +129,7 @@ export default async function UsuariosPage() {
             Criar novo usuário
           </div>
           <div className="p-5">
-            <form action={createUserAction} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs text-gray-500 block mb-1">E-mail</label>
-                <input
-                  type="email"
-                  name="email"
-                  required
-                  placeholder="usuario@empresa.com"
-                  className={inputCls + " w-full"}
-                  autoComplete="off"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 block mb-1">Senha</label>
-                <input
-                  type="password"
-                  name="password"
-                  required
-                  minLength={6}
-                  placeholder="Mínimo 6 caracteres"
-                  className={inputCls + " w-full"}
-                  autoComplete="new-password"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 block mb-1">Papel</label>
-                <select name="role" defaultValue="operador" className={inputCls + " w-full"}>
-                  <option value="admin">Admin</option>
-                  <option value="operador">Operador</option>
-                </select>
-              </div>
-              <div className="flex items-end">
-                <button
-                  type="submit"
-                  className="w-full px-4 py-2 bg-brand-yellow text-brand-black text-sm font-semibold rounded-lg hover:bg-yellow-400 transition-colors"
-                >
-                  Criar usuário
-                </button>
-              </div>
-            </form>
+            <CreateUserForm />
             <p className="text-xs text-gray-600 mt-3">
               O usuário é criado diretamente no Supabase Auth e já pode fazer login imediatamente.
             </p>

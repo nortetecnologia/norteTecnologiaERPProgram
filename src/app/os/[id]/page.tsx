@@ -75,7 +75,9 @@ export default async function OSDetailPage({ params }: { params: Promise<{ id: s
                 {(os.erp_customers as any)?.name ?? "—"}
               </Link>
             ) : (
-              <div className="text-sm text-white font-medium">{(os.erp_customers as any)?.name ?? "—"}</div>
+              <div className="text-sm text-white font-medium">
+                {(os.erp_customers as any)?.name ?? (os as any).customer_name ?? "—"}
+              </div>
             )}
             {(os.erp_customers as any)?.phone && (
               <div className="text-xs text-gray-400 mt-1">{formatPhone((os.erp_customers as any).phone)}</div>

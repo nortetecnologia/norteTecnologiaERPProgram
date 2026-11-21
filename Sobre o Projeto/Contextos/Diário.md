@@ -10,7 +10,7 @@
 
 - **Estágio:** Sistema em produção. Todos os módulos da Fase 1 implementados e funcionando. Fase 1+ em andamento.
 - **Distribuição:** App desktop Windows (instalador `.exe` via GitHub Releases, auto-update com `electron-updater`)
-- **Última atividade:** 2026-11-21 — Busca por número (NT-XXXXX/#XXXXX) em todos os campos + sync de rede movida para Configurações (admin only).
+- **Última atividade:** 2026-11-21 — Fix build TS + auditoria: CreateUserForm com useActionState, customer_name como fallback na lista/detalhe de OS.
 - **Situação geral:** Sistema operacional. Migrations aplicadas no Supabase. Cloudinary integrado. Upload de imagens nas OS funcionando. Autenticação por `app_metadata.erp_role`. Banco de dados compartilhado com o site — colunas corretas: `is_active`, `stock`. Imagens em tabela separada `product_images(id, product_id, url, alt, is_primary, position)`.
 - **Próxima etapa:** Fase 2 — relatórios avançados por período, lucratividade, NF-e.
 
@@ -19,18 +19,29 @@
 ## 2. Última atualização
 
 - **Data:** 2026-11-21
-- **Versão:** v0.5.13
-- **Atividade:** Feat — busca por número (NT-XXXXX/#XXXXX) em todos os campos + controles de sync movidos para Configurações (admin only).
+- **Versão:** v0.5.14
+- **Atividade:** Fix build TS + auditoria de funcionalidades.
 - **Resultado:**
-  - **`OSListClient.tsx`** — busca ao vivo inclui NT-XXXXX, nº direto, nome livre e nome do cadastro.
-  - **`VendasTable.tsx`** — busca inclui #XXXXX e nome de cliente.
-  - **`busca/page.tsx`** — busca universal com NT-XXXXX offline e online; pré-fetch de IDs de clientes no Supabase.
-  - **`SyncPanel.tsx`** *(novo)* — painel de sync na página de Configurações (admin only).
-  - **`DesktopBar.tsx`** — simplificado para exibir apenas banner de modo offline.
+  - **`CreateUserForm.tsx`** *(novo)* — formulário de criação de usuário extraído como Client Component usando `useActionState`, resolve erro de tipo no build.
+  - **`configuracoes/usuarios/page.tsx`** — usa `<CreateUserForm />` em vez de inline form; exibe erros e sucesso inline.
+  - **`OSListClient.tsx`** — fallback `customer_name` na coluna de cliente (OS sem cliente vinculado não mostrava mais o nome).
+  - **`os/[id]/page.tsx`** — fallback `customer_name` na seção de cliente do detalhe de OS.
 
 ---
 
 ## 3. Implementações concluídas
+
+### 2026-11-21 — Fix: build TS + auditoria de funcionalidades (v0.5.14)
+
+- **Objetivo:** Corrigir erro de tipo TypeScript no build (createUserAction em form action), auditar funcionalidades pós-v0.5.12 e corrigir exibição de OS com cliente_name livre.
+- **Implementação:**
+  1. **`configuracoes/usuarios/CreateUserForm.tsx`** *(novo)* — Client Component com `useActionState(createUserAction, null)`: exibe erros/sucesso inline, loading state no botão. Resolve erro de tipo `Promise<{error?, success?}>` não atribuível a `form action`.
+  2. **`configuracoes/usuarios/page.tsx`** — `createUserAction` removido do import; `<form action={createUserAction}>` substituído por `<CreateUserForm />`.
+  3. **`OSListClient.tsx`** — Exibição de cliente na lista de OS: `erp_customers?.name ?? customer_name ?? "Cliente não encontrado"`. Corrige exibição de OS criadas com cliente livre (sem `customer_id`).
+  4. **`os/[id]/page.tsx`** — Seção de cliente no detalhe de OS: `erp_customers?.name ?? customer_name ?? "—"`. Mesmo caso: OS sem `customer_id` vinculado agora exibe `customer_name`.
+- **SQL necessária:** Nenhuma.
+
+---
 
 ### 2026-11-21 — Feat: busca por número + sync movida para configurações admin (v0.5.13)
 
