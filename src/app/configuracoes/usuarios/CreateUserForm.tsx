@@ -3,11 +3,13 @@
 import { useActionState } from "react";
 import { createUserAction } from "./actions";
 
+type FormState = { error: string; success?: undefined } | { success: boolean; error?: undefined } | null;
+
 const inputCls =
   "bg-brand-gray-mid border border-brand-gray-light rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-brand-yellow";
 
 export function CreateUserForm() {
-  const [state, formAction, pending] = useActionState(createUserAction, null);
+  const [state, formAction, pending] = useActionState<FormState, FormData>(createUserAction, null);
 
   return (
     <form action={formAction} className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -24,7 +24,9 @@ export async function setUserRoleAction(formData: FormData) {
   revalidatePath("/configuracoes/usuarios");
 }
 
-export async function createUserAction(formData: FormData) {
+type CreateUserState = { error: string; success?: undefined } | { success: boolean; error?: undefined } | null;
+
+export async function createUserAction(_prevState: CreateUserState, formData: FormData): Promise<CreateUserState> {
   await requireAdmin();
 
   const email = (formData.get("email") as string)?.trim().toLowerCase();
