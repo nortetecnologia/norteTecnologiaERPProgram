@@ -170,7 +170,7 @@ export default async function OrcamentosPage({
                       </td>
                       <td className="px-4 py-3 text-right">
                         <Link
-                          href={`/pdv/${s.id}/recibo`}
+                          href={`/pdv/orcamentos/${s.id}`}
                           className="text-xs text-brand-yellow hover:underline"
                         >
                           Ver

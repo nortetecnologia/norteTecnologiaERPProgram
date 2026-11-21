@@ -10,7 +10,7 @@
 
 - **Estágio:** Sistema em produção. Todos os módulos da Fase 1 implementados e funcionando. Fase 1+ em andamento.
 - **Distribuição:** App desktop Windows (instalador `.exe` via GitHub Releases, auto-update com `electron-updater`)
-- **Última atividade:** 2026-11-21 — Fix build TS + auditoria: CreateUserForm com useActionState, customer_name como fallback na lista/detalhe de OS.
+- **Última atividade:** 2026-11-21 — PDV layout fix + página de orçamento com editar/excluir/fechar venda (v0.5.16).
 - **Situação geral:** Sistema operacional. Migrations aplicadas no Supabase. Cloudinary integrado. Upload de imagens nas OS funcionando. Autenticação por `app_metadata.erp_role`. Banco de dados compartilhado com o site — colunas corretas: `is_active`, `stock`. Imagens em tabela separada `product_images(id, product_id, url, alt, is_primary, position)`.
 - **Próxima etapa:** Fase 2 — relatórios avançados por período, lucratividade, NF-e.
 
@@ -19,13 +19,14 @@
 ## 2. Última atualização
 
 - **Data:** 2026-11-21
-- **Versão:** v0.5.14
-- **Atividade:** Fix build TS + auditoria de funcionalidades.
+- **Versão:** v0.5.16
+- **Atividade:** PDV layout fix + página de orçamento completa.
 - **Resultado:**
-  - **`CreateUserForm.tsx`** *(novo)* — formulário de criação de usuário extraído como Client Component usando `useActionState`, resolve erro de tipo no build.
-  - **`configuracoes/usuarios/page.tsx`** — usa `<CreateUserForm />` em vez de inline form; exibe erros e sucesso inline.
-  - **`OSListClient.tsx`** — fallback `customer_name` na coluna de cliente (OS sem cliente vinculado não mostrava mais o nome).
-  - **`os/[id]/page.tsx`** — fallback `customer_name` na seção de cliente do detalhe de OS.
+  - **`PDVClient.tsx`** — `w-full` no div raiz (elimina espaço preto); painel de checkout alargado para `w-[380px] lg:w-[460px]`.
+  - **`pdv/orcamentos/[id]/page.tsx`** *(novo)* — página de detalhe do orçamento: itens, total, cliente, botões "Fechar Venda", "Editar", "Excluir".
+  - **`pdv/orcamentos/[id]/OrcamentoActions.tsx`** *(novo)* — `FecharVendaButton` (escreve no localStorage pdv-default e redireciona ao PDV), `DeleteQuoteButton` (confirm + Server Action).
+  - **`pdv/orcamentos/[id]/editar/`** *(novo)* — página + Client Component + Server Action para editar itens, cliente e desconto de um orçamento existente.
+  - **`pdv/orcamentos/page.tsx`** — link "Ver" atualizado para `/pdv/orcamentos/${id}` (antes apontava para rota inexistente).
 
 ---
 

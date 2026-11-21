@@ -185,7 +185,7 @@ export default function PDVClient({
   const quoteNumber = quoteState && "saleNumber" in quoteState ? quoteState.saleNumber : null;
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-full w-full overflow-hidden">
       {/* Left: Product search + catalog */}
       <div className="flex-1 flex flex-col p-4 overflow-hidden border-r border-brand-gray-mid">
         <div className="flex items-center justify-between mb-3">
@@ -247,7 +247,7 @@ export default function PDVClient({
       </div>
 
       {/* Right: Cart + checkout */}
-      <form action={action} className="w-80 md:w-96 flex flex-col bg-brand-gray-dark overflow-hidden">
+      <form action={action} className="w-[380px] lg:w-[460px] flex flex-col bg-brand-gray-dark overflow-hidden">
         {/* Hidden fields */}
         <input type="hidden" name="customer_name" value={customerName} />
 
