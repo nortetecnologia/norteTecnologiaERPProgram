@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import AppLayout from "@/components/layout/AppLayout";
 import { createClient } from "@/lib/supabase/server";
 import CustomerForm from "../CustomerForm";
