@@ -10,7 +10,7 @@
 
 - **Estágio:** Sistema em produção. Todos os módulos da Fase 1 implementados e funcionando. Fase 1+ em andamento.
 - **Distribuição:** App desktop Windows (instalador `.exe` via GitHub Releases, auto-update com `electron-updater`)
-- **Última atividade:** 2026-11-21 — Impressão de orçamentos (A4 + recibo 80mm) + correção de orçamentos aparecendo como vendas em relatórios (v0.5.17).
+- **Última atividade:** 2026-11-21 — Fix: bug pagamento não atualizando + orcamentos no dashboard offline + estilo impressão padronizado (v0.5.18).
 - **Situação geral:** Sistema operacional. Migrations aplicadas no Supabase. Cloudinary integrado. Upload de imagens nas OS funcionando. Autenticação por `app_metadata.erp_role`. Banco de dados compartilhado com o site — colunas corretas: `is_active`, `stock`. Imagens em tabela separada `product_images(id, product_id, url, alt, is_primary, position)`.
 - **Próxima etapa:** Fase 2 — relatórios avançados por período, lucratividade, NF-e.
 
@@ -33,6 +33,17 @@
 ---
 
 ## 3. Implementações concluídas
+
+### 2026-11-21 — Fix: pagamento + dashboard offline + estilo impressão (v0.5.18)
+
+- **Objetivo:** Corrigir 3 bugs: (1) campo de pagamento não atualizando ao mudar quantidade; (2) orçamentos aparecendo no dashboard em modo offline; (3) impressão de orçamentos com estilo diferente do recibo de venda.
+- **Implementação:**
+  1. **`PDVClient.tsx`** — race condition React 18: `prevTotal.current` era mutado ANTES do callback `setPayments` executar (batch assíncrono). Fix: capturar `const prevValue = prevTotal.current` antes da mutação, usar `prevValue` no callback.
+  2. **`lib/queries.ts`** — caminho offline (`shouldUseLocalData`) não filtrava por `type=sale`. Fix: `sales = records.filter(s => s.type === "sale")`.
+  3. **`components/pdv/PrintLayout.tsx`** — reescrito com mesmo estilo do recibo de venda: Courier New, logo grayscale, separadores com asteriscos/tracejado, fundo branco. A4 adiciona seção de assinaturas. Busca `city`, `state_abbr`, `phone_number` da loja.
+- **SQL necessária:** Nenhuma.
+
+---
 
 ### 2026-11-21 — Feat: impressão de orçamentos A4/80mm + fix orçamentos como vendas (v0.5.17)
 
